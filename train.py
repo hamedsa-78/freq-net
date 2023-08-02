@@ -10,7 +10,7 @@ from parse_config import ConfigParser
 from freq_net.trainer import Trainer
 from freq_net.utils import prepare_device
 
-
+# pull ok!
 # fix random seeds for reproducibility
 SEED = 123
 torch.manual_seed(SEED)
