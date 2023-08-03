@@ -1,11 +1,11 @@
 # Byte-compiled / optimized / DLL files
+ts.ipynb
 __pycache__/
 *.py[cod]
 *$py.class
-
+ts.ipynb
 # C extensions
 *.so
-
 # Distribution / packaging
 .Python
 env/
