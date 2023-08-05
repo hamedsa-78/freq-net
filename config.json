@@ -19,9 +19,11 @@
     "optimizer": {
         "type": "Adam",
         "args":{
-            "lr": 0.001,
+            "lr": 1e-4,
             "weight_decay": 0,
-            "amsgrad": true
+            "amsgrad": false ,
+            "betas" : [0.9 , 0.99] ,
+            "eps" : 1e-8
         }
     },
     "loss": "nll_loss",
