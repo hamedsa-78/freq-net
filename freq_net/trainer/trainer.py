@@ -92,7 +92,7 @@ class Trainer(BaseTrainer):
 
             if batch_idx == self.len_epoch:
                 break
-        log = self.train_metrics.result()
+        log = self.train_metrics.result()  # {psnr  : 0.5 , frm : 0.4}
 
         if self.do_validation:
             val_log = self._valid_epoch(epoch)
