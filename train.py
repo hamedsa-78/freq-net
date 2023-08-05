@@ -2,12 +2,16 @@ import argparse
 import collections
 import torch
 import numpy as np
+
 import freq_net.data_loader.data_loaders as module_data
 import freq_net.model.loss as module_loss
 import freq_net.model.metric as module_metric
 import freq_net.model.model as module_arch
+
 from parse_config import ConfigParser
+
 from freq_net.trainer import Trainer
+
 from freq_net.utils import prepare_device
 
 # pull ok!
@@ -23,7 +27,9 @@ def main(config):
     logger = config.get_logger("train")
 
     # setup data_loader instances
-    data_loader = config.init_obj("data_loader", module_data)
+    data_loader = config.init_obj(
+        "data_loader", module_data
+    )  # it will pass data_loder's type with args params and fetchs from module_data
     valid_data_loader = data_loader.split_validation()
 
     # build model architecture, then print to console
@@ -37,7 +43,7 @@ def main(config):
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    criterion = getattr(module_loss, config["loss"])
+    criterion = getattr(module_loss, config["loss"])()
     metrics = [getattr(module_metric, met) for met in config["metrics"]]
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
