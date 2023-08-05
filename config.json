@@ -1,5 +1,5 @@
 {
-    "name": "Mnist_LeNet",
+    "name": "Freq_Net",
     "n_gpu": 1,
 
     "arch": {
@@ -10,7 +10,7 @@
         "type": "MnistDataLoader",
         "args":{
             "data_dir": "data/",
-            "batch_size": 128,
+            "batch_size": 128,     
             "shuffle": true,
             "validation_split": 0.1,
             "num_workers": 2
@@ -32,11 +32,12 @@
     ],
     "lr_scheduler": {
         "type": "cossine_lr",
-        
-        
+        "args": {
+            "t_max" : 20
+        }
     },
     "trainer": {
-        "epochs": 100,
+        "epochs": 20,
         "save_dir": "saved/",
         "save_period": 1,
         "verbosity": 2,

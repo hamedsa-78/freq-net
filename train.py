@@ -7,11 +7,10 @@ import freq_net.data_loader.data_loaders as module_data
 import freq_net.model.loss as module_loss
 import freq_net.model.metric as module_metric
 import freq_net.model.model as module_arch
+import freq_net.model.lr_scheduler as module_lr_scheduler
 
 from parse_config import ConfigParser
-
 from freq_net.trainer import Trainer
-
 from freq_net.utils import prepare_device
 
 # pull ok!
@@ -27,9 +26,7 @@ def main(config):
     logger = config.get_logger("train")
 
     # setup data_loader instances
-    data_loader = config.init_obj(
-        "data_loader", module_data
-    )  # it will pass data_loder's type with args params and fetchs from module_data
+    data_loader = config.init_obj("data_loader", module_data)
     valid_data_loader = data_loader.split_validation()
 
     # build model architecture, then print to console
@@ -49,8 +46,7 @@ def main(config):
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = config.init_obj("optimizer", torch.optim, trainable_params)
-    lr_scheduler = config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer)
-
+    lr_scheduler = config.init_obj("lr_scheduler", module_lr_scheduler, optimizer)
     trainer = Trainer(
         model,
         criterion,
@@ -71,7 +67,7 @@ if __name__ == "__main__":
     args.add_argument(
         "-c",
         "--config",
-        default=None,
+        default="config.json",
         type=str,
         help="config file path (default: None)",
     )
