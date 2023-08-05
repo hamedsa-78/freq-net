@@ -27,7 +27,7 @@ def default_conv(in_channels, out_channels, kernel_size, bias=True, groups=1):
 
 class ResidualBlock(nn.Module):
     def __init__(
-        self, depthwise, conv, n_feat, kernel_size, bias=True, act=nn.LeakyReLU(True),act
+        self, depthwise, conv, n_feat, kernel_size, bias=True, act=nn.LeakyReLU(True)
     ):
 
         super(ResidualBlock, self).__init__()
@@ -112,7 +112,7 @@ class FreqNet(nn.Module):
             for _ in range(n_resgroups)
         ]
         conv1 = conv(n_feat, n_feat, kernel_size)
-        modules_body=[*depthwise_res_groups,normal_res_groups,conv1]
+        modules_body=[*depthwise_res_groups,*normal_res_groups,conv1]
         self.body = nn.Sequential(*modules_body)
 
     def forward(self, x):
