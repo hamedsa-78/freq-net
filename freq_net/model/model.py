@@ -1,3 +1,4 @@
+from freq_net.base import BaseModel
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -7,8 +8,6 @@ import sys
 file = Path(__file__).resolve()
 parent, root = file.parent, file.parents[1]
 sys.path.append(f"{str(root)}/../")
-
-from freq_net.base import BaseModel
 
 
 # TODO: convolution args and group depth size
@@ -29,7 +28,6 @@ class ResidualBlock(nn.Module):
     def __init__(
         self, depthwise, conv, n_feat, kernel_size, bias=True, act=nn.LeakyReLU(True)
     ):
-
         super(ResidualBlock, self).__init__()
 
         if depthwise:
@@ -60,7 +58,7 @@ class ResidualGroup(nn.Module):
                 n_feat=n_feat,
                 kernel_size=kernel_size,
                 bias=True,
-                act= act,
+                act=act,
             )
             for _ in range(n_resblocks)
         ]
@@ -74,7 +72,8 @@ class ResidualGroup(nn.Module):
         res += x
         return res
 
-# num res groups = 7, num depthwise res groups = 3 
+
+# num res groups = 7, num depthwise res groups = 3
 class FreqNet(nn.Module):
     def __init__(self, args, conv=default_conv):
         super(FreqNet, self).__init__()
@@ -88,7 +87,6 @@ class FreqNet(nn.Module):
         # scale = args.scale[0]
         act = nn.LeakyReLU(True)
 
-
         depthwise_res_groups = [
             ResidualGroup(
                 conv=conv,
@@ -96,7 +94,7 @@ class FreqNet(nn.Module):
                 kernel_size=kernel_size,
                 act=act,
                 n_resblocks=n_resblocks,
-                depthwise=True
+                depthwise=True,
             )
             for _ in range(n_depthwise_resgroups)
         ]
@@ -107,12 +105,12 @@ class FreqNet(nn.Module):
                 kernel_size=kernel_size,
                 act=act,
                 n_resblocks=n_resblocks,
-                depthwise=False
+                depthwise=False,
             )
             for _ in range(n_resgroups)
         ]
         conv1 = conv(n_feat, n_feat, kernel_size)
-        modules_body=[*depthwise_res_groups,*normal_res_groups,conv1]
+        modules_body = [*depthwise_res_groups, *normal_res_groups, conv1]
         self.body = nn.Sequential(*modules_body)
 
     def forward(self, x):
@@ -120,7 +118,6 @@ class FreqNet(nn.Module):
 
         res = self.body(x)
         res += x
-
 
         return x
 
