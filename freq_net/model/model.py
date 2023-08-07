@@ -31,9 +31,9 @@ class ResidualBlock(nn.Module):
         super(ResidualBlock, self).__init__()
 
         if depthwise:
-            conv1 = conv(n_feat, n_feat, kernel_size, bias=bias)
+            conv1 = conv(n_feat, n_feat, kernel_size, groups=n_feat, bias=bias)
         else:
-            conv1 = conv(n_feat, n_feat, kernel_size, bias=bias, groups=n_feat)
+            conv1 = conv(n_feat, n_feat, kernel_size, bias=bias)
         conv2 = conv(n_feat, n_feat, kernel_size, bias=bias)
 
         self.body = nn.Sequential(conv1, act, conv2)
