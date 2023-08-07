@@ -72,14 +72,15 @@ class ResidualGroup(nn.Module):
         res += x
         return res
 
-# num res groups = 7, 
+
+# num res groups = 7,
 class SEN(nn.Module):
     def __init__(
         self,
         n_resgroups=7,
         n_deformable_resgroups=3,
         n_resblocks=10,
-        n_feat=100,
+        n_feat=1,
         conv=default_conv,
     ):
         super(SEN, self).__init__()
@@ -100,12 +101,15 @@ class SEN(nn.Module):
             )
             for _ in range(n_resgroups)
         ]
-        shrinking_trunk =[
+        shrinking_trunk = [
             nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1),
+            act,
             nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
+            act,
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+            act,
             nn.Conv2d(64, 100, kernel_size=3, stride=2, padding=1),
-            nn.Conv2d(100, 100, kernel_size=3, stride=2, padding=1)
+            nn.Conv2d(100, 100, kernel_size=3, stride=2, padding=1),
         ]
         # deformable_res_groups = [
         #     ResidualGroup(
@@ -118,8 +122,8 @@ class SEN(nn.Module):
         #     )
         #     for _ in range(n_deformable_resgroups)
         # ]
-        modules_body = [conv1,*normal_res_groups]
-        self.body = nn.Sequential(conv1,*modules_body,*shrinking_trunk)
+        modules_body = [conv1, *normal_res_groups, *shrinking_trunk]
+        self.body = nn.Sequential(*modules_body)
 
     def forward(self, x):
         return self.body(x)
@@ -188,7 +192,7 @@ class FreqNet(nn.Module):
         # act = nn.LeakyReLU(True)
         self.frn = FRN()
         self.sen = SEN()
-                
+
         self.weight1 = args.weight1
         self.weight2 = args.weight2
 
@@ -197,9 +201,10 @@ class FreqNet(nn.Module):
         upper = self.sen(img_s)
         lower = self.frn(img_dct)
 
-        out = upper*self.weight1 + lower*self.weight2
+        out = upper * self.weight1 + lower * self.weight2
 
         return out
+
 
 # class FreqNet(nn.Module):
 #     def __init__(self, args, conv=common.default_conv):
