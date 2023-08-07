@@ -37,7 +37,9 @@ class TwoStageDCT:
         )
         # Perform DCT on each block
         dct_blocks = torch.from_numpy(
-            fftpack.dct(fftpack.dct(blocks, axis=-2), axis=-1)
+            fftpack.dct(
+                fftpack.dct(blocks, norm="ortho", axis=-2), norm="ortho", axis=-1
+            )
         )
         # Reshape the blocks back to the original image shape
         dct_images = dct_blocks.reshape(
@@ -72,7 +74,9 @@ class TwoStageDCT:
         )
         # Perform DCT on each block
         dct_blocks = torch.from_numpy(
-            fftpack.idct(fftpack.idct(blocks, axis=-2), axis=-1)
+            fftpack.idct(
+                fftpack.idct(blocks, axis=-2, norm="ortho"), norm="ortho", axis=-1
+            )
         )
         # Reshape the blocks back to the original image shape
         dct_images = dct_blocks.reshape(
