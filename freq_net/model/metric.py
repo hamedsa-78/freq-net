@@ -10,11 +10,15 @@ def accuracy(output, target):
     return correct / len(target)
 
 
-def top_k_acc(output, target, k=3):
-    with torch.no_grad():
-        pred = torch.topk(output, k, dim=1)[1]
-        assert pred.shape[0] == len(target)
-        correct = 0
-        for i in range(k):
-            correct += torch.sum(pred[:, i] == target).item()
-    return correct / len(target)
+def frm(loss_freq: torch.Tensor) -> torch.Tensor:
+    assert loss_freq > 0, "loss_freq could not be zero"
+    return 10 * torch.log10(1 / loss_freq)
+
+
+def psnr(x: torch.Tensor, y: torch.Tensor, max_value: float = 1.0) -> torch.Tensor:
+    assert x.shape == y.shape, "tensors must have the same shape"
+    mse = torch.mean((x - y) ** 2)
+    if mse == 0:
+        return 100
+    psnr = 20 * torch.log10(max_value / torch.sqrt(mse))
+    return psnr
