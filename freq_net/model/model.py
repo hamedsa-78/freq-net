@@ -72,19 +72,72 @@ class ResidualGroup(nn.Module):
         res += x
         return res
 
+# num res groups = 7, 
+class SEN(nn.Module):
+    def __init__(
+        self,
+        n_resgroups=7,
+        n_deformable_resgroups=3,
+        n_resblocks=10,
+        n_feat=100,
+        conv=default_conv,
+    ):
+        super(SEN, self).__init__()
+
+        kernel_size = 3
+        act = nn.LeakyReLU(True)
+
+        conv1 = conv(n_feat, n_feat, kernel_size)
+
+        normal_res_groups = [
+            ResidualGroup(
+                conv=conv,
+                n_feat=n_feat,
+                kernel_size=kernel_size,
+                act=act,
+                n_resblocks=n_resblocks,
+                depthwise=False,
+            )
+            for _ in range(n_resgroups)
+        ]
+        shrinking_trunk =[
+            nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(64, 100, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(100, 100, kernel_size=3, stride=2, padding=1)
+        ]
+        # deformable_res_groups = [
+        #     ResidualGroup(
+        #         conv=conv,
+        #         n_feat=n_feat,
+        #         kernel_size=kernel_size,
+        #         act=act,
+        #         n_resblocks=n_resblocks,
+        #         depthwise=True,
+        #     )
+        #     for _ in range(n_deformable_resgroups)
+        # ]
+        modules_body = [conv1,*normal_res_groups]
+        self.body = nn.Sequential(conv1,*modules_body,*shrinking_trunk)
+
+    def forward(self, x):
+        return self.body(x)
+
 
 # num res groups = 7, num depthwise res groups = 3
-class FreqNet(nn.Module):
-    def __init__(self, args, conv=default_conv):
-        super(FreqNet, self).__init__()
+class FRN(nn.Module):
+    def __init__(
+        self,
+        n_resgroups=7,
+        n_depthwise_resgroups=3,
+        n_resblocks=10,
+        n_feat=100,
+        conv=default_conv,
+    ):
+        super(FRN, self).__init__()
 
-        n_resgroups = args.n_resgroups
-        n_depthwise_resgroups = args.n_depthwise_resgroups
-        n_resblocks = args.n_resblocks
-        n_feat = args.n_feat
         kernel_size = 3
-        # reduction = args.reduction
-        # scale = args.scale[0]
         act = nn.LeakyReLU(True)
 
         depthwise_res_groups = [
@@ -109,8 +162,7 @@ class FreqNet(nn.Module):
             )
             for _ in range(n_resgroups)
         ]
-        conv1 = conv(n_feat, n_feat, kernel_size)
-        modules_body = [*depthwise_res_groups, *normal_res_groups, conv1]
+        modules_body = [*depthwise_res_groups, *normal_res_groups]
         self.body = nn.Sequential(*modules_body)
 
     def forward(self, x):
@@ -121,6 +173,33 @@ class FreqNet(nn.Module):
 
         return x
 
+
+class FreqNet(nn.Module):
+    def __init__(self, args, conv=default_conv):
+        super(FreqNet, self).__init__()
+
+        # n_resgroups = args.n_resgroups
+        # n_depthwise_resgroups = args.n_depthwise_resgroups
+        # n_resblocks = args.n_resblocks
+        # n_feat = args.n_feat
+        # kernel_size = 3
+        # # reduction = args.reduction
+        # # scale = args.scale[0]
+        # act = nn.LeakyReLU(True)
+        self.frn = FRN()
+        self.sen = SEN()
+                
+        self.weight1 = args.weight1
+        self.weight2 = args.weight2
+
+    def forward(self, img_s, img_dct):
+        # x = self.sub_mean(x)
+        upper = self.sen(img_s)
+        lower = self.frn(img_dct)
+
+        out = upper*self.weight1 + lower*self.weight2
+
+        return out
 
 # class FreqNet(nn.Module):
 #     def __init__(self, args, conv=common.default_conv):
