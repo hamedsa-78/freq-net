@@ -1,6 +1,6 @@
 {
     "name": "Freq_Net",
-    "n_gpu": 1,
+    "n_gpu": 2,
 
     "arch": {
         "type": "MnistModel",
@@ -38,13 +38,13 @@
     },
     "trainer": {
         "epochs": 20,
-        "save_dir": "saved/",
+        "save_dir": "saved_history/",
         "save_period": 1,
         "verbosity": 2,
         
         "monitor": "min val_loss",
-        "early_stop": 10,
+        "early_stop": 5,
 
-        "tensorboard": true
+        "tensorboard": false
     }
 }
