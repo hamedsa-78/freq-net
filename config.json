@@ -3,7 +3,7 @@
     "n_gpu": 2,
 
     "arch": {
-        "type": "MnistModel",
+        "type": "FreqNet",
         "args": {}
     },
     "data_loader": {

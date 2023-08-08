@@ -179,9 +179,9 @@ class FRN(nn.Module):
 
 
 class FreqNet(nn.Module):
-    def __init__(self, args, conv=default_conv):
+    def __init__(self):
         super(FreqNet, self).__init__()
-
+        # conv=default_conv
         # n_resgroups = args.n_resgroups
         # n_depthwise_resgroups = args.n_depthwise_resgroups
         # n_resblocks = args.n_resblocks
@@ -193,8 +193,8 @@ class FreqNet(nn.Module):
         self.frn = FRN()
         self.sen = SEN()
 
-        self.weight1 = args.weight1
-        self.weight2 = args.weight2
+        self.weight1 = 0.5
+        self.weight2 = 0.5
 
     def forward(self, img_s, img_dct):
         # x = self.sub_mean(x)
