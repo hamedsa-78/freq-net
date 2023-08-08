@@ -6,19 +6,18 @@
         "type": "FreqNet",
         "args": {}
     },
+
     "data_loader": {
         "type": "DIV2KDataLoader",
         "args":{
             "data_dir": "datasets/",
             "batch_size": 16,     
             "shuffle": true,
-            "validation_split": 0.1,
+            "validation_split": 0.0,
             "num_workers": 1
         }
     },
-    
-    "transform" : "TwoStageDCT" ,
-    
+        
     "optimizer": {
         "type": "Adam",
         "args":{
@@ -29,6 +28,7 @@
             "eps" : 1e-8
         }
     },
+
     "loss": "CharbonnierLoss",
     "metrics": [
         "frm", "psnr"
@@ -39,13 +39,14 @@
             "t_max" : 20
         }
     },
+
     "trainer": {
         "epochs": 20,
         "save_dir": "saved_history/",
         "save_period": 5,
         "verbosity": 2,
         
-        "monitor": "min val_loss",
+        "monitor": "min loss",
         "early_stop": 5,
 
         "tensorboard": false

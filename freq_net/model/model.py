@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from pathlib import Path
 import sys
-from freq_net.model.two_stage_transforms import channel_norm
+from freq_net.model.two_stage_transforms import TwoStageDCT
 
 file = Path(__file__).resolve()
 parent, root = file.parent, file.parents[1]
@@ -179,7 +179,7 @@ class FRN(nn.Module):
 
 
 class FreqNet(nn.Module):
-    def __init__(self):
+    def __init__(self, is_test=False):
         super(FreqNet, self).__init__()
         # conv=default_conv
         # n_resgroups = args.n_resgroups
@@ -192,19 +192,26 @@ class FreqNet(nn.Module):
         # act = nn.LeakyReLU(True)
         self.frn = FRN()
         self.sen = SEN()
+        self.is_test = is_test
+        self.transform = TwoStageDCT()
 
         self.weight1 = 0.5
         self.weight2 = 0.5
 
     def forward(self, img_s, img_dct):
         # x = self.sub_mean(x)
-        normed_dct = channel_norm(img_dct)
+        feature_maps, normalized_feature_maps = self.transform.two_stage_dct_in(img_dct)
+        lower = self.frn(normalized_feature_maps)
+
         upper = self.sen(img_s)
-        lower = self.frn(normed_dct)
 
         out = upper * self.weight1 + lower * self.weight2
 
-        return out
+        if not self.is_test:
+            return out, None
+
+        hr_image = self.transform.two_stage_idct_out(img_s, img_dct, feature_maps, out)
+        return out, hr_image  # for MetrickTracker at test time
 
 
 # class FreqNet(nn.Module):
