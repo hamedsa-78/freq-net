@@ -25,11 +25,7 @@ class TwoStageDCT:
             width // self.block_size,
             self.block_size,
         )
-        blocks = (
-            blocks.transpose(4, 3)
-            .reshape(-1, channels, self.block_size, self.block_size)
-            .numpy()
-        )
+        blocks = blocks.transpose(4, 3).numpy()
         # Perform DCT on each block
         dct_blocks = torch.from_numpy(
             fftpack.dct(
@@ -72,7 +68,9 @@ class TwoStageDCT:
         # Perform DCT on each block
         idct_blocks = torch.from_numpy(
             fftpack.idct(
-                fftpack.idct(dct_coeffs, axis=-2, norm="ortho"), norm="ortho", axis=-1
+                fftpack.idct(dct_coeffs.numpy(), axis=-2, norm="ortho"),
+                norm="ortho",
+                axis=-1,
             )
         )
         # Reshape the blocks back to the original image shape
@@ -87,7 +85,7 @@ class TwoStageDCT:
         dct_images = dct_images.transpose(4, 3).reshape(
             batch_size, channels, block * self.block_size, block * self.block_size
         )
-        return idct_blocks  # (B , 1 , 512 , 512) original image blocks
+        return dct_images  # (B , 1 , 512 , 512) original image blocks
 
     def two_stage_dct_in(self, dct_coeffs) -> torch.Tensor:
         def channel_norm(
