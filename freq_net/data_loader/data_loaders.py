@@ -1,13 +1,13 @@
 from typing import Tuple
 import torch
+import numpy as np
 from torchvision import transforms
-from torchvision.io import read_image
 from torch.utils.data import Dataset
-from tqdm import tqdm
 from pathlib import Path
 import os
 import sys
 import shutil
+from PIL import Image
 
 file = Path(__file__).resolve()
 parent, root = file.parent, file.parents[1]
@@ -19,45 +19,55 @@ from freq_net.utils import download_url
 
 
 class DIV2KDataset(Dataset):
-    def __init__(self, root: str='datasets', train=True, download=True, transform=None) -> None:
+    def __init__(self, root: str='datasets', train=True, download=True, lr_transform=None, hr_transform=None) -> None:
         self.root = os.path.join(root, 'div2k')
         self.train = train
-        self.transform = transform
+        self.lr_transform = lr_transform
+        self.hr_transform = hr_transform
         
         if self.train:
             lr_url = 'http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_LR_bicubic_X4.zip'
             hr_url = 'http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip'
-            subpath = 'train'
+            lr_output = 'DIV2K_train_LR_bicubic_X4.zip'
+            hr_output = 'DIV2K_train_HR.zip'
+            lr_path = 'DIV2K_train_LR_bicubic/X4'
+            hr_path = 'DIV2K_train_HR'
         else:
             lr_url = 'http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_LR_bicubic_X4.zip'
             hr_url = 'http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip'
-            subpath = 'valid'
+            lr_output = 'DIV2K_valid_LR_bicubic_X4.zip'
+            hr_output = 'DIV2K_valid_HR.zip'
+            lr_path = 'DIV2K_valid_LR_bicubic/X4'
+            hr_path = 'DIV2K_valid_HR'
             
-        path = os.path.join(self.root, subpath)
-        lr_output = os.path.join(path, 'lr.zip')
-        hr_output = os.path.join(path, 'hr.zip')
-        self.lr_path = os.path.join(path, 'lr')
-        self.hr_path = os.path.join(path, 'hr')
+        lr_output = os.path.join(self.root, lr_output)
+        hr_output = os.path.join(self.root, hr_output)
+        self.lr_path = os.path.join(self.root, lr_path)
+        self.hr_path = os.path.join(self.root, hr_path)
         
         if download:
             if not os.path.exists(lr_output):
                 download_url(lr_url, lr_output)
-                shutil.unpack_archive(lr_output, self.lr_path)
+                shutil.unpack_archive(lr_output, self.root)
 
             if not os.path.exists(hr_output):
                 download_url(hr_url, hr_output)
-                shutil.unpack_archive(hr_output, self.hr_path)
+                shutil.unpack_archive(hr_output, self.root)
 
+    def __len__(self):
+        return 800 if self.train else 100
 
-    def __getitem__(self, index) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index):
         """ Outputs (lr, hr) pairs """
-        lr_img_path = os.path.join(self.lr_path, f'{index:04d}x4.png')
-        hr_img_path = os.path.join(self.hr_path, f'{index:04d}.png')
-        lr_image = read_image(lr_img_path)
-        hr_image = read_image(hr_img_path)
-        if self.transform:
-            lr_image = self.transform(lr_image)
-            hr_image = self.transform(hr_image)
+        lr_img_path = os.path.join(self.lr_path, f'{index + 1:04d}x4.png')
+        hr_img_path = os.path.join(self.hr_path, f'{index + 1:04d}.png')
+        
+        lr_image = Image.open(lr_img_path)
+        hr_image = Image.open(hr_img_path)
+        if self.lr_transform:
+            lr_image = self.lr_transform(lr_image)
+        if self.hr_transform:
+            hr_image = self.hr_transform(hr_image)
         return lr_image, hr_image
 
 
@@ -75,12 +85,16 @@ class DIV2KDataLoader(BaseDataLoader):
         num_workers=1,
         train=True,
     ):
-        trsfm = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-        )
+        transform = transforms.Compose([
+            transforms.Resize(1024, antialias=True, interpolation=transforms.InterpolationMode.BICUBIC),
+            transforms.CenterCrop((1024, 1024)),
+            transforms.Lambda(lambda img: np.array(img.convert('YCbCr'))[:, :, 0]),
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
         self.data_dir = data_dir
         self.dataset = DIV2KDataset(
-            self.data_dir, train=train, download=True, transform=trsfm
+            self.data_dir, train=train, download=True, lr_transform=transform, hr_transform=transform
         )
         super().__init__(
             self.dataset, batch_size, shuffle, validation_split, num_workers
