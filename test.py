@@ -1,10 +1,12 @@
 import argparse
 import torch
 from tqdm import tqdm
+
 import freq_net.data_loader.data_loaders as module_data
 import freq_net.model.loss as module_loss
 import freq_net.model.metric as module_metric
 import freq_net.model.model as module_arch
+
 from parse_config import ConfigParser
 
 
@@ -29,6 +31,7 @@ def main(config):
     loss_fn = getattr(module_loss, config["loss"])
     metric_fns = [getattr(module_metric, met) for met in config["metrics"]]
 
+    # config.resume : *.pth
     logger.info("Loading checkpoint: {} ...".format(config.resume))
     checkpoint = torch.load(config.resume)
     state_dict = checkpoint["state_dict"]
