@@ -1,6 +1,5 @@
 import numpy as np
 from torch.utils.data import DataLoader
-from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
 
 
@@ -16,7 +15,6 @@ class BaseDataLoader(DataLoader):
         shuffle,
         validation_split,
         num_workers,
-        collate_fn=default_collate,
     ):
         self.validation_split = validation_split
         self.shuffle = shuffle
@@ -30,7 +28,6 @@ class BaseDataLoader(DataLoader):
             "dataset": dataset,
             "batch_size": batch_size,
             "shuffle": self.shuffle,
-            "collate_fn": collate_fn,
             "num_workers": num_workers,
         }
 

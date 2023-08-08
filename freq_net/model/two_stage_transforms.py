@@ -11,7 +11,7 @@ class TwoStageDCT:
         assert R <= min(
             height, width
         ), "R region must smaller than image height and width"
-        self.input = input  # upscaled input
+        self.input = input  # upscaled input (b , 1 , 512 , 512)
         self.block_size = block_size
         self.R = R
         self.batch = batch
@@ -19,8 +19,10 @@ class TwoStageDCT:
 
     def dct(self, input: torch.Tensor) -> torch.Tensor:
         #
-        # (Batch , 1 just Y channel , 256 , 256 ) -> (Batch , block_size = 64 , flattened feature maps = 100)
+        # (Batch , 1 just Y channel , 256 , 256 ) ->
+        # (Batch , 1 , block_number = 16 , block_number = 16 , block_size = 32 , block_size =32)
         batch_size, channels, height, width = input.shape
+
         # Reshape the images to separate blocks of size block_size * block_size
         blocks = input.reshape(
             batch_size,
@@ -41,63 +43,67 @@ class TwoStageDCT:
                 fftpack.dct(blocks, norm="ortho", axis=-2), norm="ortho", axis=-1
             )
         )
+        return dct_blocks  # (B , 1 , 16 , 16 , 32 , 32 )
+
         # Reshape the blocks back to the original image shape
-        dct_images = dct_blocks.reshape(
-            batch_size,
-            channels,
-            height // self.block_size,
-            width // self.block_size,
-            self.block_size,
-            self.block_size,
-        )
-        dct_images = dct_images.transpose(4, 3).reshape(
-            batch_size, channels, height, width
-        )
-        return dct_images
+        # dct_images = dct_blocks.reshape(
+        #     batch_size,
+        #     channels,
+        #     height // self.block_size,
+        #     width // self.block_size,
+        #     self.block_size,
+        #     self.block_size,
+        # )
+        # dct_images = dct_images.transpose(4, 3).reshape(
+        #     batch_size, channels, height, width
+        # )
+        # return dct_images
 
     def idct(self, dct_coeffs: torch.Tensor) -> torch.Tensor:
-        # (Batch , 1 just Y channel , 256 , 256 ) -> (Batch , block_size = 64 , flattened feature maps = 100)
-        batch_size, channels, height, width = dct_coeffs.shape
-        # Reshape the images to separate blocks of size block_size * block_size
-        blocks = dct_coeffs.reshape(
-            batch_size,
-            channels,
-            height // self.block_size,
-            self.block_size,
-            width // self.block_size,
-            self.block_size,
-        )
-        blocks = (
-            blocks.transpose(4, 3)
-            .reshape(-1, channels, self.block_size, self.block_size)
-            .numpy()
-        )
+        # (B , 1 , block, block , 10, 10)
+        batch_size, channels, block, _, block_size, _ = dct_coeffs.shape
+
+        # blocks = dct_coeffs.reshape(
+        #     batch_size,
+        #     channels,
+        #     height // self.block_size,
+        #     self.block_size,
+        #     width // self.block_size,
+        #     self.block_size,
+        # )
+        # blocks = (
+        #     blocks.transpose(4, 3)
+        #     .reshape(-1, channels, self.block_size, self.block_size)
+        #     .numpy()
+        # )
         # Perform DCT on each block
-        dct_blocks = torch.from_numpy(
+        idct_blocks = torch.from_numpy(
             fftpack.idct(
-                fftpack.idct(blocks, axis=-2, norm="ortho"), norm="ortho", axis=-1
+                fftpack.idct(dct_coeffs, axis=-2, norm="ortho"), norm="ortho", axis=-1
             )
         )
         # Reshape the blocks back to the original image shape
-        dct_images = dct_blocks.reshape(
+        dct_images = idct_blocks.reshape(
             batch_size,
             channels,
-            height // self.block_size,
-            width // self.block_size,
+            block,
+            block,
             self.block_size,
             self.block_size,
         )
         dct_images = dct_images.transpose(4, 3).reshape(
-            batch_size, channels, height, width
+            batch_size, channels, block * self.block_size, block * self.block_size
         )
-        return dct_images
+        return idct_blocks  # (B , 1 , 512 , 512) original image blocks
 
     def two_stage_dct_in(self) -> torch.Tensor:
-        def channel_norm(feature_maps: torch.Tensor) -> torch.Tensor:
+        def channel_norm(
+            feature_maps: torch.Tensor,
+        ) -> torch.Tensor:  # in : (B , 1 , 16 , 16 , 32 , 32)
             epsilon = 1e-8
 
-            mean = feature_maps.mean(dim=-1, keepdim=True)
-            std = feature_maps.std(dim=-1, keepdim=True)
+            mean = feature_maps.mean(dim=[-2, -1], keepdim=True)
+            std = feature_maps.std(dim=[-2, -1], keepdim=True)
 
             if torch.any(std == 0):
                 std = std + epsilon
@@ -105,24 +111,26 @@ class TwoStageDCT:
             normalized_feature_maps = (feature_maps - mean) / std
             return normalized_feature_maps
 
-        dct_coeffs = self.dct(self.input)  # (B , 1 , height, width )
-        feature_maps = dct_coeffs[:, :, : self.R, : self.R].reshape(
-            self.batch, self.channel, -1
-        )
+        dct_coeffs = self.dct(self.input)  # (B , 1 , 16, 16 , 32 , 32 )
+        feature_maps = dct_coeffs[..., self.R, : self.R]  # (B , 1 , 16 , 16 , 10 , 10)
+
         normalized_feature_maps = channel_norm(feature_maps)
         return feature_maps, normalized_feature_maps
 
     def two_stage_idct_out(
-        self, feature_maps: torch.Tensor, normalized_feature_maps: torch.Tensor
-    ) -> torch.Tensor:
+        self,
+        dct_low_resolution: torch.Tensor,
+        feature_maps: torch.Tensor,
+        normalized_feature_maps: torch.Tensor,
+    ):
         def channel_denormalization(
             feature_maps: torch.Tensor, normalized_feature_maps: torch.Tensor
-        ) -> torch.Tensor:
+        ):
             """
             Reverse the channel-wise normalization performed by channel_norm()
             """
-            mean = feature_maps.mean(dim=-1, keepdim=True)
-            std = feature_maps.std(dim=-1, keepdim=True)
+            mean = feature_maps.mean(dim=[-2, -1], keepdim=True)
+            std = feature_maps.std(dim=[-2, -1], keepdim=True)
 
             # Perform channel-wise denormalization
             denormalized_feature_maps = (normalized_feature_maps * std) + mean
@@ -134,21 +142,102 @@ class TwoStageDCT:
         # Next, merge the 'denormalized_feature_map' with 'dct_low_resolution'.
         # Finally, perform the Inverse Discrete Cosine Transform (IDCT).
 
-        # (B , 1 , 100)
+        # (B , 1 , 16 , 16 , 10 , 10)
         denormalized_feature_map = channel_denormalization(
             feature_maps, normalized_feature_maps
         )
 
-        # (B , 1 , 10 , 10)
-        denormalized_feature_map = denormalized_feature_map.reshape(
-            self.batch, self.channel, self.R, self.R
-        )
+        # (B , 1 , 16 , 16 , 32 , 32)
+        # dct_low_resolution = self.dct(self.input)
 
-        dct_low_resolution = self.dct(self.input)  # (B , 1 , h = 256 , w = 256)
+        dct_coeffs = dct_low_resolution.clone()
 
-        dct_coeffs = dct_low_resolution
-
-        dct_coeffs[:, :, : self.R, : self.R] = denormalized_feature_map
+        dct_coeffs[..., self.R, : self.R] = denormalized_feature_map
 
         high_resolution_image = self.idct(dct_coeffs)
-        return high_resolution_image  # (B, 1 , 256 , 256)
+        return high_resolution_image  # (B, 1 , 512 , 512)
+
+
+def channel_norm(
+    feature_maps: torch.Tensor,
+) -> torch.Tensor:  # in : (B , 1 , 16 , 16 , 32 , 32)
+    epsilon = 1e-8
+
+    mean = feature_maps.mean(dim=[-2, -1], keepdim=True)
+    std = feature_maps.std(dim=[-2, -1], keepdim=True)
+
+    if torch.any(std == 0):
+        std = std + epsilon
+
+    normalized_feature_maps = (feature_maps - mean) / std
+    return normalized_feature_maps
+
+
+def two_stage_idct_out(
+    up_scaled_lr_image,  # (B , 3 , 512 , 512)
+    dct_low_resolution: torch.Tensor,  # (B , 1 , 16 , 16 , 10 , 10 )
+    feature_maps: torch.Tensor,  # (B , 1 , 16 , 16 , 10 , 10 ) before normalization
+    normalized_feature_maps: torch.Tensor,  # (B , 1 , 16 , 16 , 10 , 10 )
+):
+    def idct(dct_coeffs: torch.Tensor) -> torch.Tensor:
+        # (B , 1 , block, block , 10, 10)
+        batch_size, channels, block, _, block_size, _ = dct_coeffs.shape
+
+        idct_blocks = torch.from_numpy(
+            fftpack.idct(
+                fftpack.idct(dct_coeffs, axis=-2, norm="ortho"), norm="ortho", axis=-1
+            )
+        )
+        # Reshape the blocks back to the original image shape
+        dct_images = idct_blocks.reshape(
+            batch_size,
+            channels,
+            block,
+            block,
+            block_size,
+            block_size,
+        )
+        dct_images = dct_images.transpose(4, 3).reshape(
+            batch_size, channels, block * block_size, block * block_size
+        )
+        return idct_blocks  # (B , 1 , 512 , 512) original image blocks
+
+    def channel_denormalization(
+        feature_maps: torch.Tensor, normalized_feature_maps: torch.Tensor
+    ):
+        """
+        Reverse the channel-wise normalization performed by channel_norm()
+        """
+        mean = feature_maps.mean(dim=[-2, -1], keepdim=True)
+        std = feature_maps.std(dim=[-2, -1], keepdim=True)
+
+        # Perform channel-wise denormalization
+        denormalized_feature_maps = (normalized_feature_maps * std) + mean
+        return denormalized_feature_maps
+
+    # First, calculate the Discrete Cosine Transform (DCT) of the 'dct_low_resolution_image'.
+    # We will need this DCT coefficients that are not in the top-right 'R * R' (10 * 10) regions of the image.
+    # name it 'dct_low_resolution'.
+    # Next, merge the 'denormalized_feature_map' with 'dct_low_resolution'.
+    # Finally, perform the Inverse Discrete Cosine Transform (IDCT).
+
+    # (B , 1 , 16 , 16 , 10 , 10)
+    denormalized_feature_map = channel_denormalization(
+        feature_maps, normalized_feature_maps
+    )
+
+    region_size = denormalized_feature_map.shape[-1]
+
+    # (B , 1 , 16 , 16 , 32 , 32)
+    # dct_low_resolution = self.dct(self.input)
+
+    dct_coeffs = dct_low_resolution.clone()
+
+    dct_coeffs[..., region_size, :region_size] = denormalized_feature_map
+
+    high_resolution_image = idct(dct_coeffs)
+
+    three_channel_high_resolution = up_scaled_lr_image.clone()
+    three_channel_high_resolution[:, 0, ...] = high_resolution_image
+
+    return three_channel_high_resolution  # (B, 1 , 512 , 512)

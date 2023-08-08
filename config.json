@@ -1,5 +1,5 @@
 {
-    "name": "Freq_Net",
+    "name": "Freq_Net_SR",
     "n_gpu": 2,
 
     "arch": {
@@ -7,15 +7,18 @@
         "args": {}
     },
     "data_loader": {
-        "type": "MnistDataLoader",
+        "type": "DIV2KDataLoader",
         "args":{
-            "data_dir": "data/",
-            "batch_size": 128,     
+            "data_dir": "datasets/",
+            "batch_size": 16,     
             "shuffle": true,
             "validation_split": 0.1,
-            "num_workers": 2
+            "num_workers": 1
         }
     },
+    
+    "transform" : "TwoStageDCT" ,
+    
     "optimizer": {
         "type": "Adam",
         "args":{
@@ -39,7 +42,7 @@
     "trainer": {
         "epochs": 20,
         "save_dir": "saved_history/",
-        "save_period": 1,
+        "save_period": 5,
         "verbosity": 2,
         
         "monitor": "min val_loss",

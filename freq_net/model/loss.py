@@ -16,7 +16,7 @@ class CharbonnierLoss:
         for i in range(10):
             for j in range(10):
                 weight_tensors[i, j] = weights[max(i, j)]
-        return weight_tensors.view(-1)
+        return weight_tensors
 
     def __call__(self, x, y):
         """

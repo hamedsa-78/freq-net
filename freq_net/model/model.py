@@ -1,13 +1,13 @@
-from freq_net.base import BaseModel
 import torch.nn as nn
 import torch.nn.functional as F
-
 from pathlib import Path
 import sys
+from freq_net.model.two_stage_transforms import channel_norm
 
 file = Path(__file__).resolve()
 parent, root = file.parent, file.parents[1]
 sys.path.append(f"{str(root)}/../")
+from freq_net.base import BaseModel
 
 
 # TODO: convolution args and group depth size
@@ -198,8 +198,9 @@ class FreqNet(nn.Module):
 
     def forward(self, img_s, img_dct):
         # x = self.sub_mean(x)
+        normed_dct = channel_norm(img_dct)
         upper = self.sen(img_s)
-        lower = self.frn(img_dct)
+        lower = self.frn(normed_dct)
 
         out = upper * self.weight1 + lower * self.weight2
 
