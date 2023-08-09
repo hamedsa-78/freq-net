@@ -175,7 +175,7 @@ class FRN(nn.Module):
         res = self.body(x)
         res += x
 
-        return x
+        return res
 
 
 class FreqNet(nn.Module):
@@ -201,29 +201,26 @@ class FreqNet(nn.Module):
     def forward(self, img_s, img_dct):
         # x = self.sub_mean(x)
         feature_maps, normalized_feature_maps = self.transform.two_stage_dct_in(img_dct)
-        # (B , 1 , 16 , 16 , 10 , 10)
+        # (B , 16 , 16 , 10 , 10)
 
         normalized_feature_maps = normalized_feature_maps.reshape(
-            -1, 1, feature_maps.shape[2], feature_maps.shape[2], 100
-        ).movedim(4, 2)
-        # (B , 1 , 100 , 16 , 16)
+            -1, feature_maps.shape[1], feature_maps.shape[1], 100
+        ).movedim(3, 1)
+        # (B  , 100 , 16 , 16)
 
         lower = self.frn(normalized_feature_maps)
 
-        upper = self.sen(img_s)
+        upper = self.sen(img_s[:, :1, :, :])
 
-        out = upper * self.weight1 + lower * self.weight2  # (B , 1 , 100 , 16 , 16 )
+        out = upper * self.weight1 + lower * self.weight2  # (B  , 100 , 16 , 16 )
 
         if not self.is_test:
             return out, None
 
         block_numbers = out.shape[-1]
-        channel_numbers = out.shape[1]
 
-        # ( B  , 1 ,100 ,  16 , 16 ) -> (B , 1 , 16 , 16 , 10 , 10)
-        diff = out.movedim(2, 4).reshape(
-            (-1, channel_numbers, block_numbers, block_numbers, 10, 10)
-        )
+        # ( B  , 100 ,  16 , 16 ) -> (B  , 16 , 16 , 10 , 10)
+        diff = out.movedim(1, 3).reshape((-1, block_numbers, block_numbers, 10, 10))
 
         hr_image = self.transform.two_stage_idct_out(img_s, img_dct, feature_maps, diff)
         return out, hr_image  # for MetrickTracker at test time

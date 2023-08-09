@@ -16,6 +16,7 @@ from freq_net.utils import download_url
 from freq_net.base import BaseDataLoader
 from freq_net.model.two_stage_transforms import TwoStageDCT
 
+
 class DIV2KDataset(Dataset):
     def __init__(
         self,
@@ -31,15 +32,23 @@ class DIV2KDataset(Dataset):
         self.hr_transform = hr_transform
 
         if self.train:
-            lr_url = "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_LR_bicubic_X4.zip"
-            hr_url = "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_LR_bicubic_X2.zip"
+            lr_url = (
+                "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_LR_bicubic_X4.zip"
+            )
+            hr_url = (
+                "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_LR_bicubic_X2.zip"
+            )
             lr_output = "DIV2K_train_LR_bicubic_X4.zip"
             hr_output = "DIV2K_train_LR_bicubic_X2.zip"
             lr_path = "DIV2K_train_LR_bicubic/X4"
             hr_path = "DIV2K_train_LR_bicubic/X2"
         else:
-            lr_url = "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_LR_bicubic_X4.zip"
-            hr_url = "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_LR_bicubic_X2.zip"
+            lr_url = (
+                "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_LR_bicubic_X4.zip"
+            )
+            hr_url = (
+                "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_LR_bicubic_X2.zip"
+            )
             lr_output = "DIV2K_valid_LR_bicubic_X4.zip"
             hr_output = "DIV2K_valid_LR_bicubic_X2.zip"
             lr_path = "DIV2K_valid_LR_bicubic/X4"
@@ -88,7 +97,7 @@ class DIV2KDataLoader(BaseDataLoader):
         shuffle=True,
         validation_split=0.0,
         num_workers=1,
-        train=True
+        train=True,
     ):
         transform = transforms.Compose(
             [
@@ -126,6 +135,6 @@ class WithOriginalTransform(Callable):
         self.dct_util = TwoStageDCT(block_size=block_size)
 
     def __call__(self, img: torch.Tensor):
-        y = img[:1, :, :]
+        y = img[0, :, :]
         dct = self.dct_util.dct(y.unsqueeze(0))[0]
         return img, dct

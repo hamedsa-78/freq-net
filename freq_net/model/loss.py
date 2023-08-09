@@ -39,12 +39,9 @@ class CharbonnierLoss:
         diff = torch.sqrt((x - y).pow(2) + self.epsilon**2)
 
         block_numbers = diff.shape[-1]
-        channel_numbers = diff.shape[1]
 
         # ( B  , 1 ,100 ,  16 , 16 ) -> (B , 1 , 32 , 32 , 10 , 10)
-        diff = diff.movedim(2, 4).reshape(
-            (-1, channel_numbers, block_numbers, block_numbers, 10, 10)
-        )
+        diff = diff.movedim(2, 4).reshape((-1, block_numbers, block_numbers, 10, 10))
 
         charbonnier = diff * self.bc
         freq_loss = torch.sum(charbonnier) / torch.prod(torch.tensor(x.shape))
