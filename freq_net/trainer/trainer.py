@@ -91,18 +91,21 @@ class Trainer(BaseTrainer):
             # self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update("loss", loss.item())
             assert hr_predicted_img is not None, "problem in is_test parameter of model"
-            hr_predicted_rgb = torch.stack(
-                [
-                    functional.pil_to_tensor(
-                        functional.to_pil_image(img).convert("RGB")
-                    )
-                    for img in hr_predicted_img
-                ]
-            )
+            hr_predicted_rgb = (
+                torch.stack(
+                    [
+                        functional.pil_to_tensor(
+                            functional.to_pil_image(img).convert("RGB")
+                        )
+                        for img in hr_predicted_img
+                    ]
+                )
+                / 255.0
+            ).to(self.device)
 
             for met in self.metric_ftns:
                 if met.__name__ == "frm":
-                    self.train_metrics.update(met.__name__, met(loss.item()))
+                    self.train_metrics.update(met.__name__, met(loss))
 
                 else:
                     self.train_metrics.update(
@@ -157,19 +160,22 @@ class Trainer(BaseTrainer):
                 ), "problem in is_test parameter of model"
                 loss = self.criterion(output, hr_dct)
 
-                hr_predicted_rgb = torch.stack(
-                    [
-                        functional.pil_to_tensor(
-                            functional.to_pil_image(img).convert("RGB")
-                        )
-                        for img in hr_predicted_img
-                    ]
-                )
+                hr_predicted_rgb = (
+                    torch.stack(
+                        [
+                            functional.pil_to_tensor(
+                                functional.to_pil_image(img).convert("RGB")
+                            )
+                            for img in hr_predicted_img
+                        ]
+                    )
+                    / 255.0
+                ).to(self.device)
 
                 self.valid_metrics.update("loss", loss.item())
                 for met in self.metric_ftns:
                     if met.__name__ == "frm":
-                        self.valid_metrics.update(met.__name__, met(loss.item()))
+                        self.valid_metrics.update(met.__name__, met(loss))
                     else:
                         self.valid_metrics.update(
                             met.__name__, met(hr_predicted_rgb, hr_rgb)
