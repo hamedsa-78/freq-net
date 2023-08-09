@@ -2,6 +2,8 @@ import argparse
 import torch
 from tqdm import tqdm
 
+from torchvision.transforms import functional
+
 import freq_net.data_loader.data_loaders as module_data
 import freq_net.model.loss as module_loss
 import freq_net.model.metric as module_metric
@@ -49,16 +51,18 @@ def main(config):
 
     with torch.no_grad():
         for i, (data, target) in enumerate(tqdm(data_loader)):
-            lr_img, lr_dct = data
-            hr_img, hr_dct = target
-            lr_img, lr_dct, hr_img, hr_dct = (
+            _, lr_img, lr_dct = data
+            hr_rgb, hr_img, hr_dct = target
+
+            lr_img, lr_dct, hr_rgb, hr_img, hr_dct = (
                 lr_img.to(device),
                 lr_dct.to(device),
+                hr_rgb.to(device),
                 hr_img.to(device),
                 hr_dct.to(device),
             )
 
-            output, hr_predicted = model(lr_img, lr_dct)
+            output, hr_predicted_img = model(lr_img, lr_dct)
 
             #
             # save sample images, or do something with output here
@@ -68,8 +72,11 @@ def main(config):
             loss = loss_fn(output, hr_dct)
             batch_size = data.shape[0]
             total_loss += loss.item() * batch_size
+
+            hr_predicted_rgb = functional.pil_to_tensor(functional.to_pil_image(hr_predicted_img).convert("RGB"))
+
             for i, metric in enumerate(metric_fns):
-                total_metrics[i] += metric(hr_predicted, hr_img) * batch_size
+                total_metrics[i] += metric(hr_predicted_rgb, hr_img) * batch_size
 
     n_samples = len(data_loader.sampler)
     log = {"loss": total_loss / n_samples}

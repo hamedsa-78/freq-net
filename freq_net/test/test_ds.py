@@ -14,6 +14,7 @@ ds = DIV2KDataset()
 dl = DIV2KDataLoader(16, num_workers=0)
 print(next(iter(dl))[0][0].shape)
 print(next(iter(dl))[0][1].shape)
+print(next(iter(dl))[0][2].shape)
 
 
 # calculate dataloader normalization
@@ -21,7 +22,7 @@ dl = DIV2KDataLoader(1, num_workers=0)
 
 mean, var = np.zeros((3, )), np.zeros((3, ))
 for i, img in enumerate(dl):
-    X: torch.Tensor = img[0][0]
+    X: torch.Tensor = img[0][1]
     mean += X.mean(dim=[0, 2, 3]).numpy()
     var += X.var(dim=[0, 2, 3]).numpy()
     if i % 100 == 99:
