@@ -179,7 +179,7 @@ class FRN(nn.Module):
 
 
 class FreqNet(nn.Module):
-    def __init__(self, is_test=False):
+    def __init__(self, is_test=True):
         super(FreqNet, self).__init__()
         # conv=default_conv
         # n_resgroups = args.n_resgroups

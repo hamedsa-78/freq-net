@@ -137,6 +137,9 @@ class Trainer(BaseTrainer):
                 )
 
                 output, hr_predicted_img = self.model(lr_img, lr_dct)
+                assert (
+                    hr_predicted_img is not None
+                ), "problem in is_test parameter of model"
                 loss = self.criterion(output, hr_dct)
 
                 hr_predicted_rgb = torch.stack(
