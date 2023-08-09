@@ -202,6 +202,12 @@ class FreqNet(nn.Module):
         # x = self.sub_mean(x)
         feature_maps, normalized_feature_maps = self.transform.two_stage_dct_in(img_dct)
         # (B , 1 , 16 , 16 , 10 , 10)
+
+        normalized_feature_maps = normalized_feature_maps.reshape(
+            -1, 1, feature_maps.shape[2], feature_maps.shape[2], 100
+        ).movedim(4, 2)
+        # (B , 1 , 100 , 16 , 16)
+
         lower = self.frn(normalized_feature_maps)
 
         upper = self.sen(img_s)
