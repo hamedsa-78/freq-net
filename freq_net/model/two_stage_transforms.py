@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from scipy import fftpack
+from torch_dct import idct_2d
 
 # (batch_size = 64 , channel = 1 , block = 32 , block = 32 , heigth = 256 , width = 256)
 
@@ -49,23 +50,9 @@ class TwoStageDCT:
         # return dct_images
 
     def idct(self, dct_coeffs: torch.Tensor) -> torch.Tensor:
-        # (B , 1 , block, block , 10, 10)
+        # (B , 1 , 16, 16 , 10, 10)
         batch_size, channels, block, _, block_size, _ = dct_coeffs.shape
 
-        # blocks = dct_coeffs.reshape(
-        #     batch_size,
-        #     channels,
-        #     height // self.block_size,
-        #     self.block_size,
-        #     width // self.block_size,
-        #     self.block_size,
-        # )
-        # blocks = (
-        #     blocks.transpose(4, 3)
-        #     .reshape(-1, channels, self.block_size, self.block_size)
-        #     .numpy()
-        # )
-        # Perform DCT on each block
         idct_blocks = torch.from_numpy(
             fftpack.idct(
                 fftpack.idct(dct_coeffs.numpy(), axis=-2, norm="ortho"),
@@ -149,4 +136,4 @@ class TwoStageDCT:
 
         three_channel_hr_image = lr_image.clone()  # (B , 3 , 512 , 512)
         three_channel_hr_image[:, 0, ...] = high_resolution_image
-        return three_channel_hr_image  # (B, 1 , 512 , 512)
+        return three_channel_hr_image  # (B, 3 , 512 , 512)

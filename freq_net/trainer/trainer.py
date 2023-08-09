@@ -66,11 +66,19 @@ class Trainer(BaseTrainer):
         self.train_metrics.reset()
 
         for batch_idx, (data, target) in enumerate(self.data_loader):
-            data, target = data.to(self.device), target.to(self.device)
+            lr_img, lr_dct = data
+            hr_img, hr_dct = target
+
+            lr_img, lr_dct, hr_img, hr_dct = (
+                lr_img.to(self.device),
+                lr_dct.to(self.device),
+                hr_img.to(self.device),
+                hr_dct.to(self.device),
+            )
 
             self.optimizer.zero_grad()
-            output, hr_img = self.model(data)
-            loss = self.criterion(output, target)
+            output, hr_predicted = self.model(lr_img, lr_dct)
+            loss = self.criterion(output, hr_dct)
             loss.backward()
             self.optimizer.step()
 
@@ -78,7 +86,7 @@ class Trainer(BaseTrainer):
             self.train_metrics.update("loss", loss.item())
 
             for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(output, target))
+                self.train_metrics.update(met.__name__, met(hr_predicted, hr_img))
 
             if batch_idx % self.log_step == 0:
                 self.logger.debug(
@@ -111,14 +119,22 @@ class Trainer(BaseTrainer):
         self.valid_metrics.reset()
         with torch.no_grad():
             for batch_idx, (data, target) in enumerate(self.valid_data_loader):
-                data, target = data.to(self.device), target.to(self.device)
+                lr_img, lr_dct = data
+                hr_img, hr_dct = target
 
-                output = self.model(data)
-                loss = self.criterion(output, target)
+                lr_img, lr_dct, hr_img, hr_dct = (
+                    lr_img.to(self.device),
+                    lr_dct.to(self.device),
+                    hr_img.to(self.device),
+                    hr_dct.to(self.device),
+                )
+
+                output, hr_predicted = self.model(lr_img, lr_dct)
+                loss = self.criterion(output, hr_dct)
 
                 self.valid_metrics.update("loss", loss.item())
                 for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(output, target))
+                    self.valid_metrics.update(met.__name__, met(hr_predicted, hr_img))
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():
