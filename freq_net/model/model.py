@@ -219,7 +219,7 @@ class FreqNet(nn.Module):
             (-1, channel_numbers, block_numbers, block_numbers, 10, 10)
         )
 
-        hr_image = self.transform.two_stage_idct_out(img_s, img_dct, feature_maps, out)
+        hr_image = self.transform.two_stage_idct_out(img_s, img_dct, feature_maps, diff)
         return out, hr_image  # for MetrickTracker at test time
 
 

@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 from scipy import fftpack
-from torch_dct import idct_2d
 
 # (batch_size = 64 , channel = 1 , block = 32 , block = 32 , heigth = 256 , width = 256)
 
@@ -50,7 +49,7 @@ class TwoStageDCT:
         # return dct_images
 
     def idct(self, dct_coeffs: torch.Tensor) -> torch.Tensor:
-        # (B , 1 , 16, 16 , 10, 10)
+        # (B , 1 , 16, 16 , 32, 32)
         batch_size, channels, block, _, block_size, _ = dct_coeffs.shape
 
         idct_blocks = torch.from_numpy(
