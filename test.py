@@ -16,11 +16,11 @@ def main(config):
     # setup data_loader instances
     data_loader = getattr(module_data, config["data_loader"]["type"])(
         config["data_loader"]["args"]["data_dir"],
-        batch_size=512,
+        batch_size=32,
         shuffle=False,
         validation_split=0.0,
         train=False,
-        num_workers=2,
+        num_workers=0,
     )
 
     # build model architecture
