@@ -73,10 +73,15 @@ def main(config):
             batch_size = data.shape[0]
             total_loss += loss.item() * batch_size
 
-            hr_predicted_rgb = functional.pil_to_tensor(functional.to_pil_image(hr_predicted_img).convert("RGB"))
+            hr_predicted_rgb = functional.pil_to_tensor(
+                functional.to_pil_image(hr_predicted_img).convert("RGB")
+            )
 
             for i, metric in enumerate(metric_fns):
-                total_metrics[i] += metric(hr_predicted_rgb, hr_img) * batch_size
+                if metric.__name__ == "frm":
+                    total_metrics[i] += metric(loss.item()) * batch_size
+                else:
+                    total_metrics[i] += metric(hr_predicted_rgb, hr_img) * batch_size
 
     n_samples = len(data_loader.sampler)
     log = {"loss": total_loss / n_samples}

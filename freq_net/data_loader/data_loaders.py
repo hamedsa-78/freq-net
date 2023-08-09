@@ -108,8 +108,12 @@ class DIV2KDataLoader(BaseDataLoader):
                     interpolation=transforms.InterpolationMode.BICUBIC,
                 ),
                 transforms.CenterCrop((512, 512)),
-                transforms.Lambda(lambda img: (functional.to_tensor(img),
-                                               functional.to_tensor(img.convert("YCbCr")))),
+                transforms.Lambda(
+                    lambda img: (
+                        functional.to_tensor(img),
+                        functional.to_tensor(img.convert("YCbCr")),
+                    )
+                ),
                 # transforms.Normalize(
                 #     [0.44285116, 0.48022078, 0.51065065],
                 #     [0.22575448, 0.06186319, 0.058383],

@@ -87,7 +87,9 @@ class Trainer(BaseTrainer):
             # self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update("loss", loss.item())
 
-            hr_predicted_rgb = functional.pil_to_tensor(functional.to_pil_image(hr_predicted_img).convert("RGB"))
+            hr_predicted_rgb = functional.pil_to_tensor(
+                functional.to_pil_image(hr_predicted_img).convert("RGB")
+            )
 
             for met in self.metric_ftns:
                 self.train_metrics.update(met.__name__, met(hr_predicted_rgb, hr_rgb))
@@ -136,12 +138,19 @@ class Trainer(BaseTrainer):
 
                 output, hr_predicted_img = self.model(lr_img, lr_dct)
                 loss = self.criterion(output, hr_dct)
-                
-                hr_predicted_rgb = functional.pil_to_tensor(functional.to_pil_image(hr_predicted_img).convert("RGB"))
+
+                hr_predicted_rgb = functional.pil_to_tensor(
+                    functional.to_pil_image(hr_predicted_img).convert("RGB")
+                )
 
                 self.valid_metrics.update("loss", loss.item())
                 for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(hr_predicted_rgb, hr_rgb))
+                    if met.__name__ == "frm":
+                        self.valid_metrics.update(met.__name__, met(loss.item()))
+                    else:
+                        self.valid_metrics.update(
+                            met.__name__, met(hr_predicted_rgb, hr_rgb)
+                        )
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():
