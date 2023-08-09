@@ -19,17 +19,13 @@ def main(config):
         batch_size=512,
         shuffle=False,
         validation_split=0.0,
-        training=False,
+        train=False,
         num_workers=2,
     )
 
     # build model architecture
     model = config.init_obj("arch", module_arch)
     logger.info(model)
-
-    # get function handles of loss and metrics
-    loss_fn = getattr(module_loss, config["loss"])
-    metric_fns = [getattr(module_metric, met) for met in config["metrics"]]
 
     # config.resume : *.pth
     logger.info("Loading checkpoint: {} ...".format(config.resume))
@@ -43,6 +39,10 @@ def main(config):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model.eval()
+
+    # get function handles of loss and metrics
+    loss_fn = getattr(module_loss, config["loss"])(device=device)
+    metric_fns = [getattr(module_metric, met) for met in config["metrics"]]
 
     total_loss = 0.0
     total_metrics = torch.zeros(len(metric_fns))
