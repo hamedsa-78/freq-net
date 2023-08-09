@@ -102,7 +102,7 @@ class DIV2KDataLoader(BaseDataLoader):
         transform = transforms.Compose(
             [
                 transforms.Resize(
-                    1024,
+                    512,
                     antialias=True,
                     interpolation=transforms.InterpolationMode.BICUBIC,
                 ),
