@@ -1,6 +1,7 @@
 import torch
 import numpy as np
-from scipy import fftpack
+from torch_dct import dct_2d, idct_2d
+
 
 # (batch_size = 64 , channel = 1 , block = 32 , block = 32 , heigth = 256 , width = 256)
 
@@ -11,67 +12,56 @@ class TwoStageDCT:
         self.R = R
 
     def dct(self, input: torch.Tensor) -> torch.Tensor:
-        #
-        # (Batch , 1 just Y channel , 256 , 256 ) ->
-        # (Batch , 1 , block_number = 16 , block_number = 16 , block_size = 32 , block_size =32)
+        # (B, 1 just Y channel , 512 , 512 ) -> (B, 1 , block_number = 16 , block_number = 16 , block_size = 32 , block_size = 32)
         batch_size, channels, height, width = input.shape
 
         # Reshape the images to separate blocks of size block_size * block_size
-        blocks = input.reshape(
-            batch_size,
-            channels,
-            height // self.block_size,
-            self.block_size,
-            width // self.block_size,
-            self.block_size,
-        )
-        blocks = blocks.transpose(4, 3).numpy()
-        # Perform DCT on each block
-        dct_blocks = torch.from_numpy(
-            fftpack.dct(
-                fftpack.dct(blocks, norm="ortho", axis=-2), norm="ortho", axis=-1
-            )
-        )
-        return dct_blocks  # (B , 1 , 16 , 16 , 32 , 32 )
+        blocks = (input
+                  .unfold(2, self.block_size, self.block_size)
+                  .unfold(3, self.block_size, self.block_size))
 
-        # Reshape the blocks back to the original image shape
-        # dct_images = dct_blocks.reshape(
-        #     batch_size,
-        #     channels,
-        #     height // self.block_size,
-        #     width // self.block_size,
-        #     self.block_size,
-        #     self.block_size,
-        # )
-        # dct_images = dct_images.transpose(4, 3).reshape(
-        #     batch_size, channels, height, width
-        # )
-        # return dct_images
+        blocks = [blocks[b, c, i, j, :, :]
+                  for b in range(batch_size)
+                  for c in range(channels)
+                  for i in range(blocks.shape[2])
+                  for j in range(blocks.shape[3])]
+
+        blocks = torch.stack([dct_2d(block, 'ortho') for block in blocks])
+
+        blocks = blocks.reshape(batch_size,
+                                channels,
+                                height // self.block_size,
+                                width // self.block_size,
+                                self.block_size,
+                                self.block_size)
+
+        return blocks  # (B, 1 , 16, 16 , 32 , 32 )
 
     def idct(self, dct_coeffs: torch.Tensor) -> torch.Tensor:
-        # (B , 1 , 16, 16 , 32, 32)
+        # (B , 1 , block = 16, block = 16 , block_size = 32, block_size = 32)
         batch_size, channels, block, _, block_size, _ = dct_coeffs.shape
 
-        idct_blocks = torch.from_numpy(
-            fftpack.idct(
-                fftpack.idct(dct_coeffs.numpy(), axis=-2, norm="ortho"),
-                norm="ortho",
-                axis=-1,
-            )
-        )
-        # Reshape the blocks back to the original image shape
-        dct_images = idct_blocks.reshape(
-            batch_size,
-            channels,
-            block,
-            block,
-            self.block_size,
-            self.block_size,
-        )
-        dct_images = dct_images.transpose(4, 3).reshape(
-            batch_size, channels, block * self.block_size, block * self.block_size
-        )
-        return dct_images  # (B , 1 , 512 , 512) original image blocks
+        blocks = [dct_coeffs[b, c, i, j, :, :]
+                  for b in range(batch_size)
+                  for c in range(channels)
+                  for i in range(block)
+                  for j in range(block)]
+
+        blocks = torch.stack([idct_2d(block, 'ortho') for block in blocks])
+
+        blocks = blocks.reshape(batch_size,
+                                channels,
+                                block, block,
+                                block_size, block_size)
+
+        blocks.transpose(3, 4)
+        
+        images = blocks.reshape(batch_size,
+                                channels,
+                                block * block_size,
+                                block * block_size)
+        
+        return images  # (B , 1 , 512 , 512) original image blocks
 
     def two_stage_dct_in(self, dct_coeffs) -> torch.Tensor:
         def channel_norm(
