@@ -116,7 +116,7 @@ class TwoStageDCT:
 
         dct_coeffs = dct_low_resolution.clone()
 
-        dct_coeffs[..., self.R, : self.R] = denormalized_feature_map
+        dct_coeffs[..., : self.R, : self.R] = denormalized_feature_map
 
         high_resolution_image = self.idct(dct_coeffs)  # (B , 512 , 512)
 
