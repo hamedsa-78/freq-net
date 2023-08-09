@@ -107,13 +107,13 @@ class DIV2KDataLoader(BaseDataLoader):
                     interpolation=transforms.InterpolationMode.BICUBIC,
                 ),
                 transforms.CenterCrop((512, 512)),
-                transforms.Lambda(lambda img: img.convert("YCbCr")),
+                transforms.Lambda(lambda img: (img, img.convert("YCbCr"))),
                 transforms.ToTensor(),
-                transforms.Normalize(
-                    [0.44285116, 0.48022078, 0.51065065],
-                    [0.22575448, 0.06186319, 0.058383],
-                ),
-                WithOriginalTransform(),
+                # transforms.Normalize(
+                #     [0.44285116, 0.48022078, 0.51065065],
+                #     [0.22575448, 0.06186319, 0.058383],
+                # ),
+                DCTWithOriginalTransform(),
             ]
         )
         self.data_dir = data_dir
@@ -129,12 +129,12 @@ class DIV2KDataLoader(BaseDataLoader):
         )
 
 
-class WithOriginalTransform(Callable):
+class DCTWithOriginalTransform(Callable):
     def __init__(self, block_size=32):
         self.block_size = block_size
         self.dct_util = TwoStageDCT(block_size=block_size)
 
-    def __call__(self, img: torch.Tensor):
-        y = img[0, :, :]
+    def __call__(self, img):
+        y = img[1][0, :, :]
         dct = self.dct_util.dct(y.unsqueeze(0))[0]
-        return img, dct
+        return *img, dct
