@@ -31,7 +31,7 @@ def main(config):
 
     # build model architecture, then print to console
     model = config.init_obj("arch", module_arch)
-    logger.info(model)
+    # logger.info(model)
 
     # prepare for (multi-device) GPU training
     device, device_ids = prepare_device(config["n_gpu"])
@@ -40,7 +40,7 @@ def main(config):
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    criterion = getattr(module_loss, config["loss"])()
+    criterion = getattr(module_loss, config["loss"])(device=device)
     metrics = [getattr(module_metric, met) for met in config["metrics"]]
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler

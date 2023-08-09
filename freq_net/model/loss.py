@@ -1,13 +1,16 @@
 import torch
 
+from freq_net.model.two_stage_transforms import TwoStageDCT
+
 
 class CharbonnierLoss:
-    def __init__(self, epsilon: float = 1e-6):
+    def __init__(self, device, epsilon: float = 1e-6):
+        self.device = device
         self.bc = self.weight_initialization_R10()
         self.epsilon = epsilon
+        self.transform = TwoStageDCT()
 
-    @staticmethod
-    def weight_initialization_R10():
+    def weight_initialization_R10(self):
         """
         weight initialization for R = 10 (10 , 10) feature maps
         """
@@ -16,7 +19,7 @@ class CharbonnierLoss:
         for i in range(10):
             for j in range(10):
                 weight_tensors[i, j] = weights[max(i, j)]
-        return weight_tensors
+        return weight_tensors.to(self.device)
 
     def __call__(self, x, y):
         """
@@ -31,17 +34,19 @@ class CharbonnierLoss:
         Returns:
             torch.Tensor: The Charbonnier loss along with the frequency loss.
         """
-        assert x.shape == y.shape, "x and y tensors must have the same shape"
-        assert (
-            x.shape[-1] == self.bc.shape[-1]
-        ), "x and y tensors must have the same channel dim "
+        target = (
+            self.transform.two_stage_dct_in(y)[-1]
+            .reshape(-1, x.shape[-1], x.shape[-1], 100)
+            .movedim(3, 1)
+        )
+        assert x.shape == target.shape, "x and y tensors must have the same shape"
 
-        diff = torch.sqrt((x - y).pow(2) + self.epsilon**2)
+        diff = torch.sqrt((x - target).pow(2) + self.epsilon**2)
 
         block_numbers = diff.shape[-1]
 
         # ( B  , 1 ,100 ,  16 , 16 ) -> (B , 1 , 32 , 32 , 10 , 10)
-        diff = diff.movedim(2, 4).reshape((-1, block_numbers, block_numbers, 10, 10))
+        diff = diff.movedim(1, 3).reshape((-1, block_numbers, block_numbers, 10, 10))
 
         charbonnier = diff * self.bc
         freq_loss = torch.sum(charbonnier) / torch.prod(torch.tensor(x.shape))
