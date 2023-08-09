@@ -101,7 +101,13 @@ class Trainer(BaseTrainer):
             )
 
             for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(hr_predicted_rgb, hr_rgb))
+                if met.__name__ == "frm":
+                    self.train_metrics.update(met.__name__, met(loss.item()))
+
+                else:
+                    self.train_metrics.update(
+                        met.__name__, met(hr_predicted_rgb, hr_rgb)
+                    )
 
             if batch_idx % self.log_step == 0:
                 self.logger.debug(

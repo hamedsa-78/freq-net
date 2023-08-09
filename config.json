@@ -30,7 +30,7 @@
     },
 
     "loss": "CharbonnierLoss",
-    "metrics": [],
+    "metrics": ["psnr" , "frm"],
     "lr_scheduler": {
         "type": "cossine_lr",
         "args": {
