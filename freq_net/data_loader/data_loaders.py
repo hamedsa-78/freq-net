@@ -7,8 +7,6 @@ import torch
 from torchvision import transforms
 from torch.utils.data import Dataset
 from PIL import Image
-from torch_dct import dct_2d
-from hadamard_transform import hadamard_transform
 
 file = Path(__file__).resolve()
 parent, root = file.parent, file.parents[1]
@@ -16,6 +14,7 @@ sys.path.append(f"{str(root)}/../")
 
 from freq_net.utils import download_url
 from freq_net.base import BaseDataLoader
+from freq_net.model.two_stage_transforms import TwoStageDCT
 
 class DIV2KDataset(Dataset):
     def __init__(
@@ -89,8 +88,7 @@ class DIV2KDataLoader(BaseDataLoader):
         shuffle=True,
         validation_split=0.0,
         num_workers=1,
-        train=True,
-        transform_type: Literal['wht', 'dct'] = 'dct'
+        train=True
     ):
         transform = transforms.Compose(
             [
@@ -106,7 +104,7 @@ class DIV2KDataLoader(BaseDataLoader):
                     [0.44285116, 0.48022078, 0.51065065],
                     [0.22575448, 0.06186319, 0.058383],
                 ),
-                WithOriginalTransform(transform_type=transform_type),
+                WithOriginalTransform(),
             ]
         )
         self.data_dir = data_dir
@@ -123,47 +121,11 @@ class DIV2KDataLoader(BaseDataLoader):
 
 
 class WithOriginalTransform(Callable):
-    def __init__(self, block_size=32, transform_type: Literal['wht', 'dct'] = 'dct'):
+    def __init__(self, block_size=32):
         self.block_size = block_size
-        self.transform_type = transform_type
+        self.dct_util = TwoStageDCT(block_size=block_size)
 
     def __call__(self, img: torch.Tensor):
         y = img[:1, :, :]
-        dct = self.transform(y)
+        dct = self.dct_util.dct(y.unsqueeze(0))[0]
         return img, dct
-
-    def transform(self, input: torch.Tensor) -> torch.Tensor:
-        #
-        # (1 just Y channel , 256 , 256 ) -> (1 , block_number = 16 , block_number = 16 , block_size = 32 , block_size =32)
-        channels, height, width = input.shape
-
-        # Reshape the images to separate blocks of size block_size * block_size
-        blocks = (input
-                  .unfold(1, self.block_size, self.block_size)
-                  .unfold(2, self.block_size, self.block_size))
-
-        blocks = [blocks[c, i, j, :, :]
-                  for c in range(blocks.shape[0])
-                  for i in range(blocks.shape[1])
-                  for j in range(blocks.shape[2])]
-
-        blocks = torch.stack([self.transform_block(block) for block in blocks])
-
-        blocks = blocks.reshape(channels,
-                                height // self.block_size,
-                                width // self.block_size,
-                                self.block_size,
-                                self.block_size)
-
-        return blocks  # (1 , 16, 16 , 32 , 32 )
-
-    def transform_block(self, block: torch.Tensor) -> torch.Tensor:
-        if self.transform_type == 'dct':
-            return dct_2d(block, 'ortho')
-        
-        return self.wht(block)
-
-    def wht(self, x):
-        X1 = hadamard_transform(x)
-        X2 = hadamard_transform(X1.transpose(-1, -2))
-        return X2.transpose(-1, -2)
