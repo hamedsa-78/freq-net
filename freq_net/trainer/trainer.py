@@ -139,8 +139,13 @@ class Trainer(BaseTrainer):
                 output, hr_predicted_img = self.model(lr_img, lr_dct)
                 loss = self.criterion(output, hr_dct)
 
-                hr_predicted_rgb = functional.pil_to_tensor(
-                    functional.to_pil_image(hr_predicted_img).convert("RGB")
+                hr_predicted_rgb = torch.stack(
+                    [
+                        functional.pil_to_tensor(
+                            functional.to_pil_image(img).convert("RGB")
+                        )
+                        for img in hr_predicted_img
+                    ]
                 )
 
                 self.valid_metrics.update("loss", loss.item())
