@@ -191,12 +191,9 @@ class FreqNet(nn.Module):
         # # scale = args.scale[0]
         # act = nn.LeakyReLU(True)
         self.frn = FRN()
-        self.sen = SEN()
+        # self.sen = SEN()
         self.is_test = is_test
         self.transform = TwoStageDCT()
-
-        self.weight1 = 0.5
-        self.weight2 = 0.5
 
     def forward(self, img_s, img_dct):
         # x = self.sub_mean(x)
@@ -210,9 +207,9 @@ class FreqNet(nn.Module):
 
         lower = self.frn(normalized_feature_maps)
 
-        upper = self.sen(img_s[:, :1, :, :])
+        # upper = self.sen(img_s[:, :1, :, :])
 
-        out = upper * self.weight1 + lower * self.weight2  # (B  , 100 , 16 , 16 )
+        out = lower  # (B  , 100 , 16 , 16 )
 
         if not self.is_test:
             return out, None
@@ -223,7 +220,7 @@ class FreqNet(nn.Module):
         diff = out.movedim(1, 3).reshape((-1, block_numbers, block_numbers, 10, 10))
 
         hr_image = self.transform.two_stage_idct_out(img_s, img_dct, feature_maps, diff)
-        return out, hr_image  # for MetrickTracker at test time
+        return diff, hr_image  # for MetrickTracker at test time
 
 
 # class FreqNet(nn.Module):

@@ -91,17 +91,17 @@ class Trainer(BaseTrainer):
             # self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update("loss", loss.item())
             assert hr_predicted_img is not None, "problem in is_test parameter of model"
-            hr_predicted_rgb = (
-                torch.stack(
-                    [
-                        functional.pil_to_tensor(
-                            functional.to_pil_image(img).convert("RGB")
-                        )
-                        for img in hr_predicted_img
-                    ]
-                )
-                / 255.0
-            ).to(self.device)
+            # hr_predicted_rgb = (
+            #     torch.stack(
+            #         [
+            #             functional.pil_to_tensor(
+            #                 functional.to_pil_image(img).convert("RGB")
+            #             )
+            #             for img in hr_predicted_img
+            #         ]
+            #     )
+            #     / 255.0
+            # ).to(self.device)
 
             for met in self.metric_ftns:
                 if met.__name__ == "frm":
@@ -109,7 +109,7 @@ class Trainer(BaseTrainer):
 
                 else:
                     self.train_metrics.update(
-                        met.__name__, met(hr_predicted_rgb, hr_rgb)
+                        met.__name__, met(hr_predicted_img, hr_img)
                     )
 
             if batch_idx % self.log_step == 0:
@@ -160,17 +160,17 @@ class Trainer(BaseTrainer):
                 ), "problem in is_test parameter of model"
                 loss = self.criterion(output, hr_dct)
 
-                hr_predicted_rgb = (
-                    torch.stack(
-                        [
-                            functional.pil_to_tensor(
-                                functional.to_pil_image(img).convert("RGB")
-                            )
-                            for img in hr_predicted_img
-                        ]
-                    )
-                    / 255.0
-                ).to(self.device)
+                # hr_predicted_rgb = (
+                #     torch.stack(
+                #         [
+                #             functional.pil_to_tensor(
+                #                 functional.to_pil_image(img).convert("RGB")
+                #             )
+                #             for img in hr_predicted_img
+                #         ]
+                #     )
+                #     / 255.0
+                # ).to(self.device)
 
                 self.valid_metrics.update("loss", loss.item())
                 for met in self.metric_ftns:
@@ -178,7 +178,7 @@ class Trainer(BaseTrainer):
                         self.valid_metrics.update(met.__name__, met(loss))
                     else:
                         self.valid_metrics.update(
-                            met.__name__, met(hr_predicted_rgb, hr_rgb)
+                            met.__name__, met(hr_predicted_img, hr_img)
                         )
 
         # add histogram of model parameters to the tensorboard

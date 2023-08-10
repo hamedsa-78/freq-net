@@ -34,19 +34,11 @@ class CharbonnierLoss:
         Returns:
             torch.Tensor: The Charbonnier loss along with the frequency loss.
         """
-        target = (
-            self.transform.two_stage_dct_in(y)[-1]
-            .reshape(-1, x.shape[-1], x.shape[-1], 100)
-            .movedim(3, 1)
-        )
+        target = self.transform.two_stage_dct_in(y)[-1]
+
         assert x.shape == target.shape, "x and y tensors must have the same shape"
 
         diff = torch.sqrt((x - target).pow(2) + self.epsilon**2)
-
-        block_numbers = diff.shape[-1]
-
-        # ( B  , 1 ,100 ,  16 , 16 ) -> (B , 1 , 32 , 32 , 10 , 10)
-        diff = diff.movedim(1, 3).reshape((-1, block_numbers, block_numbers, 10, 10))
 
         charbonnier = diff * self.bc
         freq_loss = torch.sum(charbonnier) / torch.prod(torch.tensor(x.shape))

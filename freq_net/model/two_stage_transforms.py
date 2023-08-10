@@ -54,11 +54,11 @@ class TwoStageDCT:
 
         blocks = blocks.reshape(batch_size, block, block, block_size, block_size)
 
-        blocks.transpose(2, 3)
+        blocks = blocks.transpose(3, 2)
 
         images = blocks.reshape(batch_size, block * block_size, block * block_size)
 
-        return images  # (B , 1 , 512 , 512) original image blocks
+        return images  # (B  , 512 , 512) original image blocks
 
     def two_stage_dct_in(self, dct_coeffs) -> torch.Tensor:
         def channel_norm(
