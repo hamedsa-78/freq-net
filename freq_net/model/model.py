@@ -209,15 +209,15 @@ class FreqNet(nn.Module):
 
         # upper = self.sen(img_s[:, :1, :, :])
 
-        out = lower  # (B  , 100 , 16 , 16 )
-
-        if not self.is_test:
-            return out, None
+        out = lower * 1  # (B  , 100 , 16 , 16 )
 
         block_numbers = out.shape[-1]
 
         # ( B  , 100 ,  16 , 16 ) -> (B  , 16 , 16 , 10 , 10)
         diff = out.movedim(1, 3).reshape((-1, block_numbers, block_numbers, 10, 10))
+
+        if not self.is_test:
+            return diff, None
 
         hr_image = self.transform.two_stage_idct_out(img_s, img_dct, feature_maps, diff)
         return diff, hr_image  # for MetrickTracker at test time

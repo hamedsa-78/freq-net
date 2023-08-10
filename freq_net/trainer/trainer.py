@@ -90,7 +90,7 @@ class Trainer(BaseTrainer):
 
             # self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update("loss", loss.item())
-            assert hr_predicted_img is not None, "problem in is_test parameter of model"
+            # assert hr_predicted_img is not None, "problem in is_test parameter of model"
             # hr_predicted_rgb = (
             #     torch.stack(
             #         [
