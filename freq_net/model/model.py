@@ -179,7 +179,7 @@ class FRN(nn.Module):
 
 
 class FreqNet(nn.Module):
-    def __init__(self, is_test=True):
+    def __init__(self, is_test=True, n_resgroups=7, n_depthwise_resgroups=3):
         super(FreqNet, self).__init__()
         # conv=default_conv
         # n_resgroups = args.n_resgroups
@@ -190,7 +190,9 @@ class FreqNet(nn.Module):
         # # reduction = args.reduction
         # # scale = args.scale[0]
         # act = nn.LeakyReLU(True)
-        self.frn = FRN()
+        self.frn = FRN(
+            n_resgroups=n_resgroups, n_depthwise_resgroups=n_depthwise_resgroups
+        )
         # self.sen = SEN()
         self.is_test = is_test
         self.transform = TwoStageDCT()

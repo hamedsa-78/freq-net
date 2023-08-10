@@ -4,7 +4,7 @@
 
     "arch": {
         "type": "FreqNet",
-        "args": {"is_test" : true}
+        "args": {"is_test" : true , "n_resgroups" : 3 , "n_depthwise_resgroups" : 3}
     },
 
     "data_loader": {
