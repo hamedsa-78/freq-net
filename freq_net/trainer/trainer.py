@@ -87,7 +87,6 @@ class Trainer(BaseTrainer):
             loss.backward()
             self.optimizer.step()
 
-            # self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update("loss", loss.item())
 
             if hr_predicted_img is not None:
