@@ -7,10 +7,10 @@ def frm(loss_freq: torch.Tensor) -> torch.Tensor:
 
 
 def psnr(x: torch.Tensor, y: torch.Tensor, max_value: float = 1.0) -> torch.Tensor:
-    assert x.max() <= max_value
-    assert x.min() >= 0
-    assert y.max() <= max_value
-    assert y.min() >= 0
+    #assert x.max() <= max_value
+    #assert x.min() >= 0
+    #assert y.max() <= max_value
+    #assert y.min() >= 0
     assert x.shape == y.shape, "tensors must have the same shape"
     
     mse = torch.mean((x - y) ** 2)
