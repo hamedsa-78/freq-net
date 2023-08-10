@@ -74,10 +74,9 @@ class Trainer(BaseTrainer):
             _, lr_img, lr_dct = data
             hr_rgb, hr_img, hr_dct = target
 
-            lr_img, lr_dct, hr_rgb, hr_img, hr_dct = (
+            lr_img, lr_dct, hr_img, hr_dct = (
                 lr_img.to(self.device),
                 lr_dct.to(self.device),
-                hr_rgb.to(self.device),
                 hr_img.to(self.device),
                 hr_dct.to(self.device),
             )
@@ -90,27 +89,15 @@ class Trainer(BaseTrainer):
 
             # self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update("loss", loss.item())
-            # assert hr_predicted_img is not None, "problem in is_test parameter of model"
-            # hr_predicted_rgb = (
-            #     torch.stack(
-            #         [
-            #             functional.pil_to_tensor(
-            #                 functional.to_pil_image(img).convert("RGB")
-            #             )
-            #             for img in hr_predicted_img
-            #         ]
-            #     )
-            #     / 255.0
-            # ).to(self.device)
+            assert hr_predicted_img is not None, "problem in is_test parameter of model"
 
-            for met in self.metric_ftns:
-                if met.__name__ == "frm":
-                    self.train_metrics.update(met.__name__, met(loss))
-
-                else:
-                    self.train_metrics.update(
-                        met.__name__, met(hr_predicted_img, hr_img)
-                    )
+            with torch.no_grad():
+                for index, img_ycrcb in enumerate(hr_predicted_img):
+                    for met in self.metric_ftns:
+                        if met.__name__ == "psnr":
+                            self.train_metrics.update(
+                                met.__name__, met(img_ycrcb, hr_img[index])
+                            )
 
             if batch_idx % self.log_step == 0:
                 self.logger.debug(

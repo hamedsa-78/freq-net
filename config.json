@@ -4,7 +4,7 @@
 
     "arch": {
         "type": "FreqNet",
-        "args": {"is_test" : false}
+        "args": {"is_test" : true}
     },
 
     "data_loader": {
@@ -30,7 +30,7 @@
     },
 
     "loss": "CharbonnierLoss",
-    "metrics": ["psnr" , "frm"],
+    "metrics": ["psnr"],
     "lr_scheduler": {
         "type": "cossine_lr",
         "args": {

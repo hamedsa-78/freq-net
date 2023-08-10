@@ -122,4 +122,4 @@ class TwoStageDCT:
 
         three_channel_hr_image = lr_image.clone()  # (B , 3 , 512 , 512)
         three_channel_hr_image[:, 0, ...] = high_resolution_image
-        return three_channel_hr_image  # (B, 3 , 512 , 512)
+        return three_channel_hr_image.clip(min=0, max=1)  # (B, 3 , 512 , 512)
