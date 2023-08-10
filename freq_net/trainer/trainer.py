@@ -89,15 +89,15 @@ class Trainer(BaseTrainer):
 
             # self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
             self.train_metrics.update("loss", loss.item())
-            assert hr_predicted_img is not None, "problem in is_test parameter of model"
 
-            with torch.no_grad():
-                for index, img_ycrcb in enumerate(hr_predicted_img):
-                    for met in self.metric_ftns:
-                        if met.__name__ == "psnr":
-                            self.train_metrics.update(
-                                met.__name__, met(img_ycrcb, hr_img[index])
-                            )
+            if hr_predicted_img is not None:
+                with torch.no_grad():
+                    for index, img_ycrcb in enumerate(hr_predicted_img):
+                        for met in self.metric_ftns:
+                            if met.__name__ == "psnr":
+                                self.train_metrics.update(
+                                    met.__name__, met(img_ycrcb, hr_img[index])
+                                )
 
             if batch_idx % self.log_step == 0:
                 self.logger.debug(
@@ -142,9 +142,7 @@ class Trainer(BaseTrainer):
                 )
 
                 output, hr_predicted_img = self.model(lr_img, lr_dct)
-                assert (
-                    hr_predicted_img is not None
-                ), "problem in is_test parameter of model"
+
                 loss = self.criterion(output, hr_dct)
 
                 # hr_predicted_rgb = (
@@ -160,13 +158,15 @@ class Trainer(BaseTrainer):
                 # ).to(self.device)
 
                 self.valid_metrics.update("loss", loss.item())
-                for met in self.metric_ftns:
-                    if met.__name__ == "frm":
-                        self.valid_metrics.update(met.__name__, met(loss))
-                    else:
-                        self.valid_metrics.update(
-                            met.__name__, met(hr_predicted_img, hr_img)
-                        )
+
+                if hr_predicted_img is not None:
+                    with torch.no_grad():
+                        for index, img_ycrcb in enumerate(hr_predicted_img):
+                            for met in self.metric_ftns:
+                                if met.__name__ == "psnr":
+                                    self.valid_metrics.update(
+                                        met.__name__, met(img_ycrcb, hr_img[index])
+                                    )
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():

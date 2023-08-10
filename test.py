@@ -73,23 +73,14 @@ def main(config):
             batch_size = data.shape[0]
             total_loss += loss.item() * batch_size
 
-            hr_predicted_rgb = (
-                torch.stack(
-                    [
-                        functional.pil_to_tensor(
-                            functional.to_pil_image(img).convert("RGB")
-                        )
-                        for img in hr_predicted_img
-                    ]
-                )
-                / 255.0
-            ).to(device)
-
-            for i, metric in enumerate(metric_fns):
-                if metric.__name__ == "frm":
-                    total_metrics[i] += metric(loss) * batch_size
-                else:
-                    total_metrics[i] += metric(hr_predicted_rgb, hr_img) * batch_size
+            if hr_predicted_img is not None:
+                with torch.no_grad():
+                    for index, img_ycrcb in enumerate(hr_predicted_img):
+                        for met in metric_fns:
+                            if met.__name__ == "psnr":
+                                total_metrics[i] += (
+                                    met(img_ycrcb, hr_img[index]) * batch_size
+                                )
 
     n_samples = len(data_loader.sampler)
     log = {"loss": total_loss / n_samples}
