@@ -229,53 +229,21 @@ class FreqNet(nn.Module):
         return diff, hr_image  # for MetrickTracker at test time
 
 
-# class FreqNet(nn.Module):
-#     def __init__(self, args, conv=common.default_conv):
-#         super(FreqNet, self).__init__()
+class DirectScaling(nn.Module):
+    def __init__(self, is_test=True):
+        super(DirectScaling, self).__init__()
+        self.is_test = is_test
+        self.transform = TwoStageDCT()
 
-#         n_resgroups = args.n_resgroups
-#         n_resblocks = args.n_resblocks
-#         n_feats = args.n_feats
-#         kernel_size = 3
-#         reduction = args.reduction
-#         scale = args.scale[0]
-#         act = nn.ReLU(True)
+    def forward(self, img_s, img_dct):
+        # x = self.sub_mean(x)
+        feature_maps, normalized_feature_maps = self.transform.two_stage_dct_in(img_dct)
+        # (B , 16 , 16 , 10 , 10)
 
-#         # RGB mean for DIV2K
-#         rgb_mean = (0.4488, 0.4371, 0.4040)
-#         rgb_std = (1.0, 1.0, 1.0)
-#         self.sub_mean = common.MeanShift(args.rgb_range, rgb_mean, rgb_std)
+        if not self.is_test:
+            return normalized_feature_maps, None
 
-#         # define head module
-#         modules_head = [conv(args.n_colors, n_feats, kernel_size)]
-
-#         # define body module
-#         modules_body = [
-#             ResidualGroup(
-#                 conv, n_feats, kernel_size, reduction, act=act, res_scale=args.res_scale, n_resblocks=n_resblocks) \
-#             for _ in range(n_resgroups)]
-
-#         modules_body.append(conv(n_feats, n_feats, kernel_size))
-
-#         # define tail module
-#         modules_tail = [
-#             common.Upsampler(conv, scale, n_feats, act=False),
-#             conv(n_feats, args.n_colors, kernel_size)]
-
-#         self.add_mean = common.MeanShift(args.rgb_range, rgb_mean, rgb_std, 1)
-
-#         self.head = nn.Sequential(*modules_head)
-#         self.body = nn.Sequential(*modules_body)
-#         self.tail = nn.Sequential(*modules_tail)
-
-#     def forward(self, x):
-#         x = self.sub_mean(x)
-#         x = self.head(x)
-
-#         res = self.body(x)
-#         res += x
-
-#         x = self.tail(res)
-#         x = self.add_mean(x)
-
-#         return x
+        hr_image = self.transform.two_stage_idct_out(
+            img_s, img_dct, feature_maps, normalized_feature_maps
+        )
+        return normalized_feature_maps, hr_image  # for MetrickTracker at test time
