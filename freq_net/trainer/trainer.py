@@ -13,10 +13,6 @@ sys.path.append(f"{str(root)}/../")
 from freq_net.base import BaseTrainer
 from freq_net.utils import inf_loop, MetricTracker
 
-#
-
-# aaaaa
-
 
 class Trainer(BaseTrainer):
     """
@@ -95,7 +91,16 @@ class Trainer(BaseTrainer):
                         for met in self.metric_ftns:
                             if met.__name__ == "psnr":
                                 self.train_metrics.update(
-                                    met.__name__, met(img_ycrcb, hr_img[index])
+                                    met.__name__,
+                                    met(img_ycrcb[:, 0, ...], hr_img[index][:, 0, ...]),
+                                )
+                            elif met.__name__ == "bicubic_psnr":
+                                self.train_metrics.update(
+                                    met.__name__,
+                                    met(
+                                        lr_img[index][:, 0, ...],
+                                        hr_img[index][:, 0, ...],
+                                    ),
                                 )
 
             if batch_idx % self.log_step == 0:
@@ -144,28 +149,27 @@ class Trainer(BaseTrainer):
 
                 loss = self.criterion(output, hr_dct)
 
-                # hr_predicted_rgb = (
-                #     torch.stack(
-                #         [
-                #             functional.pil_to_tensor(
-                #                 functional.to_pil_image(img).convert("RGB")
-                #             )
-                #             for img in hr_predicted_img
-                #         ]
-                #     )
-                #     / 255.0
-                # ).to(self.device)
-
                 self.valid_metrics.update("loss", loss.item())
 
                 if hr_predicted_img is not None:
-                    with torch.no_grad():
-                        for index, img_ycrcb in enumerate(hr_predicted_img):
-                            for met in self.metric_ftns:
-                                if met.__name__ == "psnr":
-                                    self.valid_metrics.update(
-                                        met.__name__, met(img_ycrcb, hr_img[index])
-                                    )
+                    for index, img_ycrcb in enumerate(hr_predicted_img):
+                        for met in self.metric_ftns:
+                            if met.__name__ == "psnr":
+                                self.valid_metrics.update(
+                                    met.__name__,
+                                    met(
+                                        img_ycrcb[:, 0, ...],
+                                        hr_img[index][:, 0, ...],
+                                    ),
+                                )
+                            elif met.__name__ == "bicubic_psnr":
+                                self.valid_metrics.update(
+                                    met.__name__,
+                                    met(
+                                        lr_img[index][:, 0, ...],
+                                        hr_img[index][:, 0, ...],
+                                    ),
+                                )
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():
