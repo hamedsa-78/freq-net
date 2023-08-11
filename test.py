@@ -18,8 +18,8 @@ def main(config):
 
     # setup data_loader instances
     data_loader = getattr(module_data, config["data_loader"]["type"])(
+        64,
         config["data_loader"]["args"]["data_dir"],
-        batch_size=64,
         shuffle=False,
         validation_split=0.0,
         train=False,
@@ -28,7 +28,7 @@ def main(config):
 
     # build model architecture
     model = config.init_obj("arch", module_arch)
-    logger.info(model)
+    # logger.info(model)
 
     # config.resume : *.pth
     logger.info("Loading checkpoint: {} ...".format(config.resume))
@@ -52,12 +52,15 @@ def main(config):
     metric_fns = [getattr(module_metric, met) for met in config["metrics"]]
 
     total_loss = 0.0
-    total_metrics = torch.zeros(len(metric_fns))
+    total_loss_direct = 0.0
+    total_metrics = torch.zeros(len(metric_fns)).to(device)
 
     with torch.no_grad():
         for i, (data, target) in enumerate(tqdm(data_loader)):
             _, lr_img, lr_dct = data
             hr_rgb, hr_img, hr_dct = target
+            assert lr_img.max() <= 1, "no grater than 1"
+            assert hr_img.max() <= 1, "no grater than 1 y"
 
             lr_img, lr_dct, hr_rgb, hr_img, hr_dct = (
                 lr_img.to(device),
@@ -77,29 +80,33 @@ def main(config):
             loss = loss_fn(output, hr_dct)
             loss_direct = loss_fn(hr_from_lr_coeffs, hr_dct)
 
-            batch_size = data.shape[0]
+            batch_size = data[0].shape[0]
             total_loss += loss.item() * batch_size
+            total_loss_direct += loss_direct.item() * batch_size
 
             if hr_predicted_img is not None:
                 with torch.no_grad():
                     for index, img_ycrcb in enumerate(hr_predicted_img):
                         for j, met in enumerate(metric_fns):
                             if met.__name__ == "psnr":
-                                total_metrics[j] += (
-                                    met(img_ycrcb, hr_img[index]) * batch_size
+                                total_metrics[j] += met(
+                                    img_ycrcb[:, 0, ...], hr_img[index][:, 0, ...]
                                 )
                             elif met.__name__ == "bicubic_psnr":
-                                total_metrics[j] += (
-                                    met(hr_predicted_direct[i], hr_img[index])
-                                    * batch_size
+                                total_metrics[j] += met(
+                                    hr_predicted_direct[index][:, 0, ...],
+                                    hr_img[index][:, 0, ...],
                                 )
                             elif met.__name__ == "frm":
-                                total_metrics[j] += met(loss) * batch_size
+                                total_metrics[j] += met(loss)
                             elif met.__name__ == "bicubic_frm":
-                                total_metrics[j] += met(loss_direct) * batch_size
+                                total_metrics[j] += met(loss_direct)
 
     n_samples = len(data_loader.sampler)
-    log = {"loss": total_loss / n_samples}
+    log = {
+        "loss": total_loss / n_samples,
+        "loss_bicubic": total_loss_direct / n_samples,
+    }
     log.update(
         {
             met.__name__: total_metrics[i].item() / n_samples

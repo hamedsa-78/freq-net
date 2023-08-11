@@ -6,8 +6,8 @@
         "type": "FreqNet",
         "args": {
             "is_test" : true ,
-             "n_resgroups" : 2 , 
-             "n_depthwise_resgroups" : 1 ,
+             "n_resgroups" : 4 , 
+             "n_depthwise_resgroups" : 3 ,
              "n_resblocks" : 5
 
         }
@@ -17,7 +17,7 @@
         "type": "DIV2KDataLoader",
         "args":{
             "data_dir": "datasets/",
-            "batch_size": 8,     
+            "batch_size": 4,     
             "shuffle": true,
             "validation_split": 0.1,
             "num_workers": 0
