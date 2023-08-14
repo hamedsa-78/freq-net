@@ -1,0 +1,53 @@
+{
+    "name": "Freq_Net_SR",
+    "n_gpu": 2,
+    "arch": {
+        "type": "FreqNet",
+        "args": {
+            "is_test": true,
+            "n_resgroups": 4,
+            "n_depthwise_resgroups": 3,
+            "n_resblocks": 5
+        }
+    },
+    "data_loader": {
+        "type": "DIV2KDataLoader",
+        "args": {
+            "data_dir": "datasets/",
+            "batch_size": 8,
+            "shuffle": true,
+            "validation_split": 0.1,
+            "num_workers": 0
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args": {
+            "lr": 0.0001,
+            "weight_decay": 0,
+            "amsgrad": false,
+            "betas": [
+                0.9,
+                0.99
+            ],
+            "eps": 1e-08
+        }
+    },
+    "loss": "CharbonnierLoss",
+    "metrics": [
+        "psnr"
+    ],
+    "lr_scheduler": {
+        "type": "",
+        "args": {}
+    },
+    "trainer": {
+        "epochs": 40,
+        "save_dir": "saved_history/",
+        "save_period": 3,
+        "verbosity": 2,
+        "monitor": "min loss",
+        "early_stop": 5,
+        "tensorboard": false
+    }
+}

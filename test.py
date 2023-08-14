@@ -12,6 +12,9 @@ import freq_net.model.model as module_arch
 from parse_config import ConfigParser
 from freq_net.model.model import DirectScaling
 
+import matplotlib.pyplot as plt
+from skimage import color
+
 
 def main(config):
     logger = config.get_logger("test")
@@ -22,7 +25,7 @@ def main(config):
         config["data_loader"]["args"]["data_dir"],
         shuffle=False,
         validation_split=0.0,
-        train=False,
+        train=True,
         num_workers=0,
     )
 
@@ -72,6 +75,7 @@ def main(config):
 
             output, hr_predicted_img = model(lr_img, lr_dct)
             hr_from_lr_coeffs, hr_predicted_direct = test_model(lr_img, lr_dct)
+
             #
             # save sample images, or do something with output here
             #
@@ -142,3 +146,8 @@ if __name__ == "__main__":
 
     config = ConfigParser.from_args(args)
     main(config)
+
+
+def ycbcr_to_rgb(ycbcr_image):
+    rgb_image = color.ycbcr2rgb(ycbcr_image)
+    return rgb_image

@@ -1,6 +1,6 @@
 {
     "name": "Freq_Net_SR",
-    "n_gpu": 2,
+    "n_gpu": 1,
 
     "arch": {
         "type": "FreqNet",
@@ -17,7 +17,7 @@
         "type": "DIV2KDataLoader",
         "args":{
             "data_dir": "datasets/",
-            "batch_size": 4,     
+            "batch_size": 8,     
             "shuffle": true,
             "validation_split": 0.1,
             "num_workers": 0
@@ -36,7 +36,7 @@
     },
 
     "loss": "CharbonnierLoss",
-    "metrics": ["psnr" , "bicubic_psnr"],
+    "metrics": ["psnr" , "bicubic_psnr" , "frm" , "bicubic_frm"],
     "lr_scheduler": {
         "type": "cossine_lr",
         "args": {
